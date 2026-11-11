@@ -136,7 +136,7 @@ Header PIN hanya dikirim saat bendahara melakukan perubahan. PIN tidak disimpan 
 
 ## Aset pembayaran
 
-Untuk menampilkan QRIS, letakkan gambar yang benar dari bendahara di `public/qris.png`. Informasi rekening, nominal, dan ketentuan pembayaran harus dikonfirmasi sebelum dipublikasikan.
+Untuk menampilkan QRIS, letakkan gambar yang benar dari bendahara di `public/qris.jpg` dan pastikan file tersebut disertakan dalam commit/deploy. Vite menyalin aset di direktori `public` ke hasil build. Informasi rekening, nominal, dan ketentuan pembayaran harus dikonfirmasi sebelum dipublikasikan.
 
 ## Keamanan konfigurasi
 
