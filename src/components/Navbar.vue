@@ -15,7 +15,7 @@ function isActive(path) {
 
 <template>
   <header class="sticky top-0 z-30 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl">
-    <div class="mx-auto flex max-w-7xl items-center justify-between gap-5 px-4 py-3.5 sm:px-6 lg:px-8">
+    <div class="mx-auto flex w-full max-w-7xl flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-5 sm:px-6 lg:px-8">
       <RouterLink to="/" class="flex shrink-0 items-center gap-3" aria-label="KasKita, halaman utama">
         <span class="grid h-10 w-10 place-items-center rounded-2xl bg-emerald-700 text-lg font-black text-white shadow-sm">K</span>
         <span>
@@ -24,7 +24,7 @@ function isActive(path) {
         </span>
       </RouterLink>
 
-      <nav class="flex items-center gap-1 rounded-full bg-slate-100 p-1" aria-label="Navigasi utama">
+      <nav class="flex w-full items-center justify-between gap-1 rounded-full bg-slate-100 p-1 sm:w-auto" aria-label="Navigasi utama">
         <RouterLink
           v-for="link in links"
           :key="link.to"

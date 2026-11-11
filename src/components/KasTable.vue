@@ -27,10 +27,16 @@ function formatDate(value) {
 </script>
 
 <template>
-  <div class="overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-card">
-    <div v-if="records.length" class="overflow-x-auto">
+  <div class="min-w-0 overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-card">
+    <div
+      v-if="records.length"
+      class="max-h-[55vh] min-w-0 overflow-auto overscroll-contain"
+      role="region"
+      aria-label="Daftar pembayaran, dapat digulir secara horizontal dan vertikal"
+      tabindex="0"
+    >
       <table class="w-full min-w-[760px] text-left text-sm">
-        <thead class="bg-slate-50 text-xs font-bold uppercase tracking-wide text-slate-500">
+        <thead class="sticky top-0 z-10 bg-slate-50 text-xs font-bold uppercase tracking-wide text-slate-500">
           <tr>
             <th scope="col" class="px-5 py-4">Mahasiswa</th>
             <th scope="col" class="px-5 py-4">Periode</th>

@@ -15,8 +15,8 @@ const formatCurrency = (value) =>
 </script>
 
 <template>
-  <section class="grid gap-4 sm:grid-cols-3" aria-label="Ringkasan kas">
-    <article class="relative overflow-hidden rounded-3xl bg-emerald-800 p-5 text-white shadow-card sm:p-6">
+  <section class="grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-label="Ringkasan kas">
+    <article class="relative min-w-0 overflow-hidden rounded-3xl bg-emerald-800 p-5 text-white shadow-card sm:p-6">
       <div class="absolute -right-7 -top-8 h-32 w-32 rounded-full bg-emerald-600/40"></div>
       <div class="relative">
         <div class="flex items-center justify-between">
@@ -28,7 +28,7 @@ const formatCurrency = (value) =>
       </div>
     </article>
 
-    <article class="rounded-3xl border border-slate-200/80 bg-white p-5 shadow-card sm:p-6">
+    <article class="min-w-0 rounded-3xl border border-slate-200/80 bg-white p-5 shadow-card sm:p-6">
       <div class="flex items-center justify-between">
         <p class="text-sm font-medium text-slate-500">Sudah lunas</p>
         <span class="grid h-9 w-9 place-items-center rounded-xl bg-emerald-50 text-emerald-700" aria-hidden="true">✓</span>
@@ -37,7 +37,7 @@ const formatCurrency = (value) =>
       <p class="mt-2 text-xs text-slate-500">Pembayaran tercatat lunas</p>
     </article>
 
-    <article class="rounded-3xl border border-slate-200/80 bg-white p-5 shadow-card sm:p-6">
+    <article class="min-w-0 rounded-3xl border border-slate-200/80 bg-white p-5 shadow-card sm:p-6">
       <div class="flex items-center justify-between">
         <p class="text-sm font-medium text-slate-500">Belum lunas</p>
         <span class="grid h-9 w-9 place-items-center rounded-xl bg-amber-50 text-amber-700" aria-hidden="true">!</span>

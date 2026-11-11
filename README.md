@@ -69,6 +69,7 @@ Status implementasi frontend:
 
 - [x] Proyek Vue 3 + Vite, Tailwind CSS, Vue Router, Axios, dan TanStack Vue Query.
 - [x] Dashboard publik dengan ringkasan, pencarian, filter status, dan tabel.
+- [x] Tabel memiliki scroll horizontal/vertikal independen dengan tinggi dibatasi viewport; halaman tidak melebar mengikuti tabel.
 - [x] Halaman bendahara dengan form tambah/edit dan konfirmasi hapus; PIN hanya disimpan selama halaman aktif.
 - [x] Halaman informasi pembayaran dengan placeholder aman untuk detail rekening dan QRIS yang belum disediakan.
 - [ ] Hubungkan ke backend aktif melalui `VITE_API_BASE_URL`, isi detail pembayaran/aset QRIS, lalu verifikasi dan deploy ke Vercel.

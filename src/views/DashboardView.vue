@@ -14,19 +14,19 @@ const records = computed(() => publicKasQuery.data.value?.data ?? [])
 </script>
 
 <template>
-  <div class="space-y-9">
-    <section class="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-      <div>
+  <div class="min-w-0 space-y-9">
+    <section class="flex min-w-0 flex-col gap-5 md:flex-row md:items-end md:justify-between">
+      <div class="min-w-0">
         <p class="text-sm font-bold text-emerald-700">Halo, teman kelas 👋</p>
         <h1 class="mt-2 max-w-2xl text-3xl font-extrabold tracking-tight text-slate-950 sm:text-4xl">Kas kelas, jelas ke mana arahnya.</h1>
         <p class="mt-3 max-w-xl text-sm leading-6 text-slate-500 sm:text-base">Pantau ringkasan saldo dan status pembayaran kas dalam satu tempat.</p>
       </div>
-      <RouterLink to="/info" class="btn-secondary shrink-0 self-start sm:self-auto">
+      <RouterLink to="/info" class="btn-secondary self-start md:shrink-0 md:self-auto">
         Cara pembayaran <span aria-hidden="true">→</span>
       </RouterLink>
     </section>
 
-    <div v-if="publicKasQuery.isLoading.value" class="grid gap-4 sm:grid-cols-3" aria-label="Memuat ringkasan">
+    <div v-if="publicKasQuery.isLoading.value" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-label="Memuat ringkasan">
       <div v-for="item in 3" :key="item" class="h-36 animate-pulse rounded-3xl bg-slate-200/70"></div>
     </div>
     <section v-else-if="publicKasQuery.isError.value" class="alert-error" role="alert">
@@ -41,18 +41,18 @@ const records = computed(() => publicKasQuery.data.value?.data ?? [])
     <StatCards v-else :summary="summary" />
 
     <section class="space-y-4">
-      <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div class="flex min-w-0 flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
           <p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Transparansi</p>
           <h2 class="mt-1 text-xl font-extrabold tracking-tight text-slate-900">Catatan pembayaran</h2>
         </div>
-        <div class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-          <label class="relative block sm:w-64">
+        <div class="flex w-full min-w-0 flex-col gap-2 md:w-auto md:flex-row">
+          <label class="relative block min-w-0 md:w-64">
             <span class="sr-only">Cari nama atau NIM</span>
             <span class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden="true">⌕</span>
             <input v-model="search" type="search" class="form-input pl-10" placeholder="Cari nama atau NIM" />
           </label>
-          <label class="block sm:w-44">
+          <label class="block min-w-0 md:w-44">
             <span class="sr-only">Filter status</span>
             <select v-model="status" class="form-input">
               <option>Semua</option>
