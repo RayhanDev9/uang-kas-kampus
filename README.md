@@ -57,7 +57,7 @@ frontend/
 ## Menjalankan Secara Lokal
 
 1. Pastikan API backend berjalan dan dapat diakses.
-2. Salin `.env.example` menjadi `.env`, lalu isi `VITE_API_URL` dengan URL backend (contoh lokal: `http://localhost:3000`).
+2. Salin `.env.example` menjadi `.env`, lalu isi `VITE_API_BASE_URL` dengan URL backend yang diakhiri `/api` (contoh lokal: `http://localhost:3000/api`).
 3. Jalankan `npm install`, lalu `npm run dev`.
 4. Buka URL lokal yang ditampilkan Vite.
 
@@ -71,7 +71,7 @@ Status implementasi frontend:
 - [x] Dashboard publik dengan ringkasan, pencarian, filter status, dan tabel.
 - [x] Halaman bendahara dengan form tambah/edit dan konfirmasi hapus; PIN hanya disimpan selama halaman aktif.
 - [x] Halaman informasi pembayaran dengan placeholder aman untuk detail rekening dan QRIS yang belum disediakan.
-- [ ] Hubungkan ke backend aktif, isi detail pembayaran/aset QRIS, lalu verifikasi dan deploy ke Vercel.
+- [ ] Hubungkan ke backend aktif melalui `VITE_API_BASE_URL`, isi detail pembayaran/aset QRIS, lalu verifikasi dan deploy ke Vercel.
 
 ## Rencana Pengerjaan
 
@@ -81,14 +81,15 @@ Status implementasi frontend:
 - [x] Pasang dan konfigurasi Tailwind CSS, Axios, Vue Router, dan `@tanstack/vue-query`.
 - [x] Daftarkan `VueQueryPlugin` di `src/main.js`.
 - [x] Buat router untuk `/`, `/admin`, dan `/info`.
-- [x] Buat `.env.example` dengan variabel `VITE_API_URL`; jangan menyimpan kredensial atau PIN di repositori.
+- [x] Buat `.env.example` dengan variabel `VITE_API_BASE_URL`; jangan menyimpan kredensial atau PIN di repositori.
 
 **Hasil:** aplikasi dapat dijalankan secara lokal dan navigasi dasar berfungsi.
 
 ### 2. Integrasi API dan state server
 
-- [x] Konfigurasikan instance Axios di `src/api/axios.js` menggunakan `import.meta.env.VITE_API_URL`.
-- [x] Buat query `['kas']` di `src/composables/useKas.js` untuk mengambil `GET /api/kas`.
+- [x] Konfigurasikan instance Axios di `src/api/axios.js` menggunakan `import.meta.env.VITE_API_BASE_URL`.
+- [x] Buat query `['kas']` di `src/composables/useKas.js` untuk mengambil `GET /kas` dari base URL yang berakhiran `/api`.
+- [x] Kirim pencarian dan status sebagai query parameter; ringkasan API tetap ditampilkan tanpa dipengaruhi filter.
 - [x] Buat mutation Create (`POST`), Update (`PUT`), dan Delete (`DELETE`).
 - [x] Sertakan header `x-admin-pin` pada setiap mutation.
 - [x] Setelah mutation berhasil, invalidasi query `['kas']` agar tabel dan ringkasan diperbarui.
@@ -132,7 +133,7 @@ Status implementasi frontend:
 - [ ] Pastikan permintaan mutation mengirim `x-admin-pin` dan data diperbarui setelah sukses.
 - [ ] Build aplikasi untuk produksi dan perbaiki kegagalan build.
 - [ ] Deploy frontend ke Vercel.
-- [ ] Atur `VITE_API_URL` di Environment Variables Vercel menggunakan URL deployment backend.
+- [ ] Atur `VITE_API_BASE_URL` di Environment Variables Vercel menggunakan URL deployment backend yang berakhiran `/api`.
 - [ ] Verifikasi integrasi pada deployment frontend dan pastikan konfigurasi environment tersedia saat build.
 
 **Hasil:** frontend ter-deploy dan dapat berkomunikasi dengan backend production.
@@ -157,4 +158,4 @@ Kontrak berikut harus dipertahankan saat menghubungkan frontend dengan backend.
 - Data dan ringkasan diperbarui setelah mutation berhasil.
 - Loading, data kosong, dan error API ditangani dengan tampilan yang jelas.
 - Layout dapat digunakan pada desktop dan mobile.
-- Build produksi berhasil dan konfigurasi `VITE_API_URL` production benar.
+- Build produksi berhasil dan konfigurasi `VITE_API_BASE_URL` production benar.

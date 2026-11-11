@@ -5,24 +5,12 @@ import KasTable from '../components/KasTable.vue'
 import StatCards from '../components/StatCards.vue'
 import { useKas } from '../composables/useKas'
 
-const { kasQuery } = useKas()
 const search = ref('')
 const status = ref('Semua')
 
-const summary = computed(() => kasQuery.data.value?.summary ?? {})
-const filteredRecords = computed(() => {
-  const records = kasQuery.data.value?.data ?? []
-  const normalizedSearch = search.value.trim().toLocaleLowerCase('id-ID')
-
-  return records.filter((record) => {
-    const matchesSearch =
-      !normalizedSearch ||
-      String(record.nama ?? '').toLocaleLowerCase('id-ID').includes(normalizedSearch) ||
-      String(record.nim ?? '').toLocaleLowerCase('id-ID').includes(normalizedSearch)
-    const matchesStatus = status.value === 'Semua' || record.status === status.value
-    return matchesSearch && matchesStatus
-  })
-})
+const { kasQuery: publicKasQuery } = useKas({ search, status })
+const summary = computed(() => publicKasQuery.data.value?.summary ?? {})
+const records = computed(() => publicKasQuery.data.value?.data ?? [])
 </script>
 
 <template>
@@ -38,16 +26,16 @@ const filteredRecords = computed(() => {
       </RouterLink>
     </section>
 
-    <div v-if="kasQuery.isLoading.value" class="grid gap-4 sm:grid-cols-3" aria-label="Memuat ringkasan">
+    <div v-if="publicKasQuery.isLoading.value" class="grid gap-4 sm:grid-cols-3" aria-label="Memuat ringkasan">
       <div v-for="item in 3" :key="item" class="h-36 animate-pulse rounded-3xl bg-slate-200/70"></div>
     </div>
-    <section v-else-if="kasQuery.isError.value" class="alert-error" role="alert">
+    <section v-else-if="publicKasQuery.isError.value" class="alert-error" role="alert">
       <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p class="font-bold">Data kas belum dapat dimuat</p>
-          <p class="mt-1 text-sm">{{ getErrorMessage(kasQuery.error.value) }}</p>
+          <p class="mt-1 text-sm">{{ getErrorMessage(publicKasQuery.error.value) }}</p>
         </div>
-        <button type="button" class="btn-secondary border-rose-200 bg-white" @click="kasQuery.refetch()">Coba lagi</button>
+        <button type="button" class="btn-secondary border-rose-200 bg-white" @click="publicKasQuery.refetch()">Coba lagi</button>
       </div>
     </section>
     <StatCards v-else :summary="summary" />
@@ -75,13 +63,16 @@ const filteredRecords = computed(() => {
         </div>
       </div>
 
-      <div v-if="kasQuery.isLoading.value" class="grid min-h-56 place-items-center rounded-3xl border border-slate-200 bg-white text-sm text-slate-500 shadow-card">
+      <div v-if="publicKasQuery.isLoading.value" class="grid min-h-56 place-items-center rounded-3xl border border-slate-200 bg-white text-sm text-slate-500 shadow-card">
         Memuat catatan pembayaran...
       </div>
-      <div v-else-if="kasQuery.isError.value" class="grid min-h-56 place-items-center rounded-3xl border border-slate-200 bg-white px-6 text-center text-sm text-slate-500 shadow-card">
+      <div v-else-if="publicKasQuery.isError.value" class="grid min-h-56 place-items-center rounded-3xl border border-slate-200 bg-white px-6 text-center text-sm text-slate-500 shadow-card">
         Daftar kas tidak tersedia karena data gagal dimuat.
       </div>
-      <KasTable v-else :records="filteredRecords" />
+      <KasTable v-else :records="records" />
+      <p v-if="publicKasQuery.isFetching.value && !publicKasQuery.isLoading.value" class="text-xs font-medium text-emerald-700" role="status">
+        Memperbarui daftar...
+      </p>
       <p class="text-xs leading-5 text-slate-400">Informasi pada halaman ini mengikuti data yang tercatat oleh bendahara kelas.</p>
     </section>
   </div>
