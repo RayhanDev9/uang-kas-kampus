@@ -1,164 +1,150 @@
-# Rencana Frontend Uang Kas Kampus
+<div align="center">
 
-Dokumen ini berisi rencana implementasi antarmuka transparansi dan pengelolaan kas kelas menggunakan Vue 3. Dokumen ini merupakan panduan pengerjaan; fitur-fitur di bawah belum dianggap selesai sebelum diimplementasikan dan diuji.
+# KasKita
 
-## Tujuan
+### Transparansi kas kelas, lebih jelas dan mudah dipantau.
 
-- Menampilkan saldo kas dan daftar transaksi secara transparan.
-- Menyediakan pencarian dan filter transaksi untuk pengguna publik.
-- Memungkinkan bendahara menambah, mengubah, dan menghapus data kas melalui API.
-- Menyediakan informasi rekening/e-wallet, QRIS, dan ketentuan pembayaran.
-- Menyediakan antarmuka responsif untuk perangkat desktop maupun mobile.
+Aplikasi web untuk melihat ringkasan pembayaran kas dan membantu bendahara mengelola catatan transaksi kelas.
+
+[![Vue 3](https://img.shields.io/badge/Vue.js-3-42b883?logo=vuedotjs&logoColor=white)](https://vuejs.org/)
+[![Vite](https://img.shields.io/badge/Vite-7-646cff?logo=vite&logoColor=white)](https://vite.dev/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3-06b6d4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![TanStack Query](https://img.shields.io/badge/TanStack_Query-5-ff4154?logo=reactquery&logoColor=white)](https://tanstack.com/query/latest/docs/framework/vue/overview)
+[![Axios](https://img.shields.io/badge/Axios-1-5a29e4?logo=axios&logoColor=white)](https://axios-http.com/)
+[![Vue Router](https://img.shields.io/badge/Vue_Router-4-42b883?logo=vuedotjs&logoColor=white)](https://router.vuejs.org/)
+
+</div>
+
+## Tentang
+
+KasKita menyediakan satu tempat untuk melihat saldo yang terkumpul, status pembayaran, dan catatan kas. Pengunjung dapat mencari data berdasarkan nama/NIM, sementara bendahara dapat mencatat, mengubah, dan menghapus transaksi melalui API.
+
+## Aplikasi dan repositori
+
+| Resource | Tautan |
+|---|---|
+| Backend API | [backend-uang-kas-kampus.vercel.app](https://backend-uang-kas-kampus.vercel.app/) |
+| Source code backend | [RayhanDev9/backend-uang-kas-kampus](https://github.com/RayhanDev9/backend-uang-kas-kampus) |
+| Source code frontend | [RayhanDev9/uang-kas-kampus](https://github.com/RayhanDev9/uang-kas-kampus) |
+
+API kas: [`GET /api/kas`](https://backend-uang-kas-kampus.vercel.app/api/kas)
+
+## Fitur
+
+- Ringkasan saldo terkumpul, jumlah yang lunas, dan jumlah yang belum lunas.
+- Tabel transaksi dengan pencarian nama/NIM dan filter status.
+- Tampilan responsif; tabel memiliki area scroll sendiri pada layar kecil atau ketika data panjang.
+- Halaman admin untuk menambah, mengubah, dan menghapus catatan kas.
+- Informasi pembayaran dan QRIS. Detail rekening dan gambar QRIS perlu disediakan oleh bendahara.
+- State loading, data kosong, dan error API.
 
 ## Teknologi
 
-- Vue 3, Vite, dan Composition API
-- `@tanstack/vue-query` untuk pengambilan data dan mutasi
-- Axios untuk komunikasi HTTP
-- Vue Router untuk navigasi
-- Tailwind CSS untuk styling responsif
-- `@tanstack/vue-table` atau tabel kustom dengan pencarian dan filter
-- Pinia opsional; PIN bendahara hanya digunakan selama sesi dan tidak ditanamkan di aplikasi
-- Vercel untuk deployment frontend
+### Frontend
 
-## Struktur Target
+| Teknologi | Penggunaan |
+|---|---|
+| [Vue 3](https://vuejs.org/) | Antarmuka dan Composition API |
+| [Vite](https://vite.dev/) | Development server dan build produksi |
+| [Tailwind CSS](https://tailwindcss.com/) | Styling dan layout responsif |
+| [TanStack Vue Query](https://tanstack.com/query/latest/docs/framework/vue/overview) | Server state, query, mutation, dan invalidasi cache |
+| [Axios](https://axios-http.com/) | HTTP client untuk Backend API |
+| [Vue Router](https://router.vuejs.org/) | Navigasi halaman |
+| JavaScript | Bahasa aplikasi frontend |
 
-```text
-frontend/
-├── public/
-│   ├── favicon.ico
-│   └── qris.*                    # Gambar QRIS yang disediakan bendahara
-├── src/
-│   ├── api/
-│   │   └── axios.js              # Konfigurasi Axios dan base URL API
-│   ├── assets/
-│   │   └── main.css              # Tailwind CSS dan style global
-│   ├── components/
-│   │   ├── Navbar.vue
-│   │   ├── StatCards.vue
-│   │   ├── KasTable.vue
-│   │   └── KasFormModal.vue
-│   ├── composables/
-│   │   └── useKas.js             # Query dan mutation TanStack Query
-│   ├── router/
-│   │   └── index.js
-│   ├── views/
-│   │   ├── DashboardView.vue
-│   │   ├── AdminView.vue
-│   │   └── InfoView.vue
-│   ├── App.vue
-│   └── main.js
-├── .env.example                  # Contoh konfigurasi lokal tanpa rahasia
-├── package.json
-├── vercel.json                   # Fallback untuk rute Vue Router
-└── README.md
+### Backend
+
+Backend adalah proyek terpisah. Stack yang digunakan:
+
+| Teknologi | Penggunaan |
+|---|---|
+| [Node.js](https://nodejs.org/) dan [Express](https://expressjs.com/) | Runtime dan REST API |
+| [MongoDB](https://www.mongodb.com/) dan [Mongoose](https://mongoosejs.com/) | Database dan pemodelan data |
+| [Vercel](https://vercel.com/) | Deployment API |
+
+## Halaman
+
+| Rute | Deskripsi |
+|---|---|
+| `/` | Dashboard publik, ringkasan, pencarian, filter, dan tabel |
+| `/admin` | Pengelolaan data kas oleh bendahara |
+| `/info` | Informasi pembayaran, QRIS, dan ketentuan |
+
+## Menjalankan secara lokal
+
+### Persyaratan
+
+- Node.js 18 atau lebih baru
+- npm
+- Backend KasKita lokal atau akses ke Backend API production
+
+### Instalasi
+
+```bash
+npm install
 ```
 
-## Menjalankan Secara Lokal
+Salin `.env.example` menjadi `.env`. Untuk backend lokal, gunakan:
 
-1. Pastikan API backend berjalan dan dapat diakses.
-2. Salin `.env.example` menjadi `.env`, lalu isi `VITE_API_BASE_URL` dengan URL backend yang diakhiri `/api` (contoh lokal: `http://localhost:3000/api`).
-3. Jalankan `npm install`, lalu `npm run dev`.
-4. Buka URL lokal yang ditampilkan Vite.
+```env
+VITE_API_BASE_URL=http://localhost:3000/api
+```
 
-Pada build production, aplikasi menggunakan `https://backend-uang-kas-kampus.vercel.app/api` jika `VITE_API_BASE_URL` tidak diatur. Untuk deployment Vercel, set `VITE_API_BASE_URL` pada Project Settings → Environment Variables ke URL backend yang benar dan lakukan redeploy. Variabel `VITE_*` dibaca saat build; mengubah `.env.example` saja tidak mengubah environment deployment.
+Jika ingin menggunakan backend production, ubah URL menjadi:
 
-Untuk menampilkan QRIS, letakkan gambar yang benar dari bendahara di `public/qris.png`. Detail rekening, nominal kas, dan periode pembayaran harus dikonfirmasi sebelum dipublikasikan; halaman info sengaja menampilkan arahan konfirmasi sampai data tersebut tersedia.
+```env
+VITE_API_BASE_URL=https://backend-uang-kas-kampus.vercel.app/api
+```
 
-## Implementasi
+Jalankan server pengembangan:
 
-Status implementasi frontend:
+```bash
+npm run dev
+```
 
-- [x] Proyek Vue 3 + Vite, Tailwind CSS, Vue Router, Axios, dan TanStack Vue Query.
-- [x] Dashboard publik dengan ringkasan, pencarian, filter status, dan tabel.
-- [x] Tabel memiliki scroll horizontal/vertikal independen dengan tinggi dibatasi viewport; halaman tidak melebar mengikuti tabel.
-- [x] Halaman bendahara dengan form tambah/edit dan konfirmasi hapus; PIN hanya disimpan selama halaman aktif.
-- [x] Halaman informasi pembayaran dengan placeholder aman untuk detail rekening dan QRIS yang belum disediakan.
-- [ ] Hubungkan ke backend aktif melalui `VITE_API_BASE_URL`, isi detail pembayaran/aset QRIS, lalu verifikasi dan deploy ke Vercel.
+Buat dan tinjau build produksi:
 
-## Rencana Pengerjaan
+```bash
+npm run build
+npm run preview
+```
 
-### 1. Inisialisasi proyek
+Jika `VITE_API_BASE_URL` tidak ditentukan, build production menggunakan Backend API KasKita di atas; mode development menggunakan `http://localhost:3000/api`.
 
-- [x] Siapkan proyek Vue 3 + Vite.
-- [x] Pasang dan konfigurasi Tailwind CSS, Axios, Vue Router, dan `@tanstack/vue-query`.
-- [x] Daftarkan `VueQueryPlugin` di `src/main.js`.
-- [x] Buat router untuk `/`, `/admin`, dan `/info`.
-- [x] Buat `.env.example` dengan variabel `VITE_API_BASE_URL`; jangan menyimpan kredensial atau PIN di repositori.
+## Konfigurasi deployment
 
-**Hasil:** aplikasi dapat dijalankan secara lokal dan navigasi dasar berfungsi.
+Saat deploy frontend ke Vercel, atur `VITE_API_BASE_URL` pada **Project Settings → Environment Variables**:
 
-### 2. Integrasi API dan state server
+```env
+VITE_API_BASE_URL=https://backend-uang-kas-kampus.vercel.app/api
+```
 
-- [x] Konfigurasikan instance Axios di `src/api/axios.js` menggunakan `import.meta.env.VITE_API_BASE_URL`.
-- [x] Buat query `['kas']` di `src/composables/useKas.js` untuk mengambil `GET /kas` dari base URL yang berakhiran `/api`.
-- [x] Kirim pencarian dan status sebagai query parameter; ringkasan API tetap ditampilkan tanpa dipengaruhi filter.
-- [x] Buat mutation Create (`POST`), Update (`PUT`), dan Delete (`DELETE`).
-- [x] Sertakan header `x-admin-pin` pada setiap mutation.
-- [x] Setelah mutation berhasil, invalidasi query `['kas']` agar tabel dan ringkasan diperbarui.
-- [x] Tampilkan status loading dan pesan error secara jelas; jangan menganggap permintaan gagal sebagai sukses.
+Kemudian lakukan redeploy. Vite membaca variabel `VITE_*` ketika build, sehingga perubahan environment tidak mengubah deployment yang sudah dibangun.
 
-**Hasil:** data dan ringkasan berasal dari API, dan perubahan data tercermin setelah mutation.
+## Integrasi API
 
-### 3. Dashboard publik (`/`)
+Base URL API harus berakhiran `/api`. Endpoint yang digunakan frontend:
 
-- [x] Buat `StatCards.vue` untuk menampilkan `totalSaldo`, `totalLunas`, dan `totalBelumLunas` dari `summary`.
-- [x] Buat pencarian berdasarkan nama atau NIM.
-- [x] Buat filter status: Semua, Lunas, dan Belum Lunas.
-- [x] Buat `KasTable.vue` untuk menampilkan data transaksi.
-- [x] Gunakan badge status berwarna untuk membedakan Lunas dan Belum Lunas.
-- [x] Pastikan tabel, kartu ringkasan, dan kontrol filter nyaman digunakan pada layar kecil.
+| Method | Endpoint | Keterangan |
+|---|---|---|
+| `GET` | `/kas` | Mengambil daftar, ringkasan, dan parameter filter `search`/`status` |
+| `POST` | `/kas` | Membuat catatan kas; memerlukan header `x-admin-pin` |
+| `PUT` | `/kas/:id` | Memperbarui catatan; memerlukan header `x-admin-pin` |
+| `DELETE` | `/kas/:id` | Menghapus catatan; memerlukan header `x-admin-pin` |
 
-**Hasil:** pengunjung dapat memahami ringkasan kas dan menemukan transaksi berdasarkan nama/NIM atau status.
+Header PIN hanya dikirim saat bendahara melakukan perubahan. PIN tidak disimpan di source code atau local storage; pengguna memasukkannya di halaman admin. Perlindungan PIN sederhana ini bukan pengganti autentikasi sesi/token untuk aplikasi publik.
 
-### 4. Halaman pengelolaan bendahara (`/admin`)
+## Aset pembayaran
 
-- [x] Sediakan input PIN bendahara untuk digunakan pada header `x-admin-pin`.
-- [x] Sediakan tombol **+ Catat Kas Baru** yang membuka `KasFormModal.vue`.
-- [x] Validasi field wajib dan format nilai sebelum mengirim data.
-- [x] Sediakan aksi Edit/Ubah Status pada setiap baris dan gunakan mutation Update.
-- [x] Sediakan aksi Hapus dengan konfirmasi sebelum mutation Delete.
-- [x] Tampilkan hasil sukses atau error dari operasi secara jelas.
+Untuk menampilkan QRIS, letakkan gambar yang benar dari bendahara di `public/qris.png`. Informasi rekening, nominal, dan ketentuan pembayaran harus dikonfirmasi sebelum dipublikasikan.
 
-**Hasil:** bendahara dapat membuat, mengubah, dan menghapus data melalui API.
+## Keamanan konfigurasi
 
-### 5. Halaman informasi pembayaran (`/info`)
+- Jangan commit `.env` atau rahasia.
+- `.env.example` hanya berisi konfigurasi contoh yang aman.
+- Gunakan `VITE_API_BASE_URL` hanya untuk alamat API publik; variabel `VITE_*` akan ikut terkirim ke browser.
+- Simpan `ADMIN_PIN` dan `DATABASE_URL` hanya di konfigurasi environment backend.
 
-- [x] Siapkan tampilan informasi rekening/e-wallet, QRIS, dan ketentuan pembayaran; detail yang belum diberikan ditandai sebagai placeholder.
-- [x] Pastikan informasi pembayaran tetap terbaca di perangkat mobile.
+## Lisensi
 
-**Hasil:** pengguna dapat menemukan instruksi pembayaran yang benar dan mudah dibaca.
-
-### 6. Verifikasi dan deployment
-
-- [ ] Uji navigasi, tampilan responsif, loading/error/empty state, pencarian, dan filter.
-- [ ] Uji operasi Create, Update, dan Delete terhadap backend yang sesuai.
-- [ ] Pastikan permintaan mutation mengirim `x-admin-pin` dan data diperbarui setelah sukses.
-- [ ] Build aplikasi untuk produksi dan perbaiki kegagalan build.
-- [ ] Deploy frontend ke Vercel.
-- [ ] Atur `VITE_API_BASE_URL` di Environment Variables Vercel menggunakan URL deployment backend yang berakhiran `/api`, lalu redeploy agar nilainya masuk ke build.
-- [ ] Verifikasi integrasi pada deployment frontend dan pastikan konfigurasi environment tersedia saat build.
-
-**Hasil:** frontend ter-deploy dan dapat berkomunikasi dengan backend production.
-
-## Kontrak Integrasi Backend
-
-Kontrak berikut harus dipertahankan saat menghubungkan frontend dengan backend.
-
-| Method | Endpoint | Header wajib | Request body | Response sukses |
-|---|---|---|---|---|
-| `GET` | `/api/kas` | — | Tidak ada; query `?status=&search=` opsional | `{ success: true, summary: { totalSaldo, totalLunas, totalBelumLunas }, data: [...] }` |
-| `POST` | `/api/kas` | `x-admin-pin` | `{ nim, nama, periode, nominal, status }` | `{ success: true, message: "...", data: {...} }` |
-| `PUT` | `/api/kas/:id` | `x-admin-pin` | `{ status, nominal, ... }` | `{ success: true, message: "...", data: {...} }` |
-| `DELETE` | `/api/kas/:id` | `x-admin-pin` | Tidak ada | `{ success: true, message: "Data kas berhasil dihapus" }` |
-
-## Kriteria Selesai
-
-- Ketiga rute (`/`, `/admin`, `/info`) dapat dibuka dan memiliki navigasi yang berfungsi.
-- Dashboard menampilkan ringkasan dan tabel dari response API.
-- Pencarian dan filter status menghasilkan daftar transaksi yang sesuai.
-- Bendahara dapat menjalankan Create, Update, dan Delete dengan PIN pada header yang diwajibkan.
-- Data dan ringkasan diperbarui setelah mutation berhasil.
-- Loading, data kosong, dan error API ditangani dengan tampilan yang jelas.
-- Layout dapat digunakan pada desktop dan mobile.
-- Build produksi berhasil dan konfigurasi `VITE_API_BASE_URL` production benar.
+Belum ada lisensi open-source yang ditetapkan untuk repository ini.
