@@ -61,6 +61,8 @@ frontend/
 3. Jalankan `npm install`, lalu `npm run dev`.
 4. Buka URL lokal yang ditampilkan Vite.
 
+Pada build production, aplikasi menggunakan `https://backend-uang-kas-kampus.vercel.app/api` jika `VITE_API_BASE_URL` tidak diatur. Untuk deployment Vercel, set `VITE_API_BASE_URL` pada Project Settings → Environment Variables ke URL backend yang benar dan lakukan redeploy. Variabel `VITE_*` dibaca saat build; mengubah `.env.example` saja tidak mengubah environment deployment.
+
 Untuk menampilkan QRIS, letakkan gambar yang benar dari bendahara di `public/qris.png`. Detail rekening, nominal kas, dan periode pembayaran harus dikonfirmasi sebelum dipublikasikan; halaman info sengaja menampilkan arahan konfirmasi sampai data tersebut tersedia.
 
 ## Implementasi
@@ -134,7 +136,7 @@ Status implementasi frontend:
 - [ ] Pastikan permintaan mutation mengirim `x-admin-pin` dan data diperbarui setelah sukses.
 - [ ] Build aplikasi untuk produksi dan perbaiki kegagalan build.
 - [ ] Deploy frontend ke Vercel.
-- [ ] Atur `VITE_API_BASE_URL` di Environment Variables Vercel menggunakan URL deployment backend yang berakhiran `/api`.
+- [ ] Atur `VITE_API_BASE_URL` di Environment Variables Vercel menggunakan URL deployment backend yang berakhiran `/api`, lalu redeploy agar nilainya masuk ke build.
 - [ ] Verifikasi integrasi pada deployment frontend dan pastikan konfigurasi environment tersedia saat build.
 
 **Hasil:** frontend ter-deploy dan dapat berkomunikasi dengan backend production.
