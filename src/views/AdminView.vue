@@ -509,20 +509,25 @@ function exportExcel() {
 
         <div v-else class="divide-y divide-slate-100 mt-2">
           <div 
-            v-for="item in nonKasRecords" 
+            v-for="(item, idx) in nonKasRecords" 
             :key="item._id" 
             class="flex items-center justify-between py-3.5 hover:bg-slate-50/70 px-2 rounded-xl transition"
           >
-            <div>
-              <div class="flex items-center gap-2">
-                <span class="font-bold text-slate-900 text-sm">{{ item.judul }}</span>
-                <span class="rounded px-2 py-0.5 text-[10px] font-bold bg-teal-50 text-teal-700">
-                  {{ item.kategori }}
-                </span>
+            <div class="flex items-center gap-3">
+              <span class="grid h-6 w-6 place-items-center rounded-lg bg-slate-100 font-mono text-[10px] font-bold text-slate-500 shrink-0">
+                {{ idx + 1 }}
+              </span>
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="font-bold text-slate-900 text-sm">{{ item.judul }}</span>
+                  <span class="rounded px-2 py-0.5 text-[10px] font-bold bg-teal-50 text-teal-700">
+                    {{ item.kategori }}
+                  </span>
+                </div>
+                <p class="text-xs text-slate-400 mt-0.5">
+                  {{ item.tanggalMasuk?.substring(0, 10) }} &bull; {{ item.keterangan || 'Tanpa keterangan' }}
+                </p>
               </div>
-              <p class="text-xs text-slate-400 mt-0.5">
-                {{ item.tanggalMasuk?.substring(0, 10) }} &bull; {{ item.keterangan || 'Tanpa keterangan' }}
-              </p>
             </div>
             <div class="flex items-center gap-3">
               <span class="font-mono font-bold text-sm text-slate-900">{{ formatCurrency(item.nominal) }}</span>
@@ -598,21 +603,26 @@ function exportExcel() {
         <h4 class="font-extrabold text-slate-900 text-base mb-4">Daftar Semua Semester</h4>
         <div class="divide-y divide-slate-100">
           <div 
-            v-for="sem in semesters" 
+            v-for="(sem, idx) in semesters" 
             :key="sem._id" 
             class="flex items-center justify-between py-4 hover:bg-slate-50/70 px-2 rounded-xl transition"
           >
-            <div>
-              <div class="flex items-center gap-2">
-                <span class="font-bold text-slate-900 text-sm">{{ sem.nama }}</span>
-                <span 
-                  class="rounded-full px-2 py-0.5 text-[10px] font-bold"
-                  :class="sem.isAktif ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'"
-                >
-                  {{ sem.isAktif ? 'Sedang Aktif' : 'Arsip' }}
-                </span>
+            <div class="flex items-center gap-3">
+              <span class="grid h-6 w-6 place-items-center rounded-lg bg-slate-100 font-mono text-[10px] font-bold text-slate-500 shrink-0">
+                {{ idx + 1 }}
+              </span>
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="font-bold text-slate-900 text-sm">{{ sem.nama }}</span>
+                  <span 
+                    class="rounded-full px-2 py-0.5 text-[10px] font-bold"
+                    :class="sem.isAktif ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'"
+                  >
+                    {{ sem.isAktif ? 'Sedang Aktif' : 'Arsip' }}
+                  </span>
+                </div>
+                <p class="text-xs text-slate-400 font-mono mt-0.5">Kode: {{ sem.kode }}</p>
               </div>
-              <p class="text-xs text-slate-400 font-mono mt-0.5">Kode: {{ sem.kode }}</p>
             </div>
 
             <button

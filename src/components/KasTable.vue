@@ -69,6 +69,7 @@ function getAvatarColor(str) {
         <table class="w-full text-left text-sm">
           <thead class="sticky top-0 z-10 bg-slate-50/95 backdrop-blur-sm text-xs font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200/80">
             <tr>
+              <th scope="col" class="w-14 px-4 py-3.5 text-center">No</th>
               <th scope="col" class="px-5 py-3.5">Mahasiswa</th>
               <th scope="col" class="px-5 py-3.5">Periode</th>
               <th scope="col" class="px-5 py-3.5">Nominal</th>
@@ -83,6 +84,11 @@ function getAvatarColor(str) {
               :key="recordId(record) ?? `${record.nim}-${record.periode}-${index}`"
               class="group transition-colors duration-150 hover:bg-slate-50/80"
             >
+              <!-- Nomor Urut -->
+              <td class="w-14 px-4 py-4 text-center font-mono text-xs font-bold text-slate-400 group-hover:text-emerald-700 transition-colors">
+                {{ index + 1 }}
+              </td>
+
               <!-- Mahasiswa info with Avatar -->
               <td class="px-5 py-4">
                 <div class="flex items-center gap-3">
@@ -175,6 +181,9 @@ function getAvatarColor(str) {
         >
           <div class="flex items-start justify-between gap-3">
             <div class="flex items-center gap-2.5">
+              <span class="grid h-6 w-6 place-items-center rounded-lg bg-slate-200/80 font-mono text-[10px] font-bold text-slate-600 shrink-0">
+                {{ index + 1 }}
+              </span>
               <div
                 class="grid h-10 w-10 shrink-0 place-items-center rounded-xl border text-xs font-bold shadow-sm"
                 :class="getAvatarColor(record.nama || record.nim)"
