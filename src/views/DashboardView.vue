@@ -21,6 +21,7 @@ import HistoryDrawer from '../components/HistoryDrawer.vue'
 import { useKas } from '../composables/useKas'
 import { useSemester } from '../composables/useSemester'
 import { usePemasukanLain } from '../composables/usePemasukanLain'
+import { usePengeluaran } from '../composables/usePengeluaran'
 
 const search = ref('')
 const status = ref('Semua')
@@ -29,6 +30,7 @@ const historyOpen = ref(false)
 const { selectedSemesterId, selectedSemester, isViewingArchived } = useSemester()
 const { kasQuery: publicKasQuery } = useKas({ search, status, semesterId: selectedSemesterId })
 const { totalNominal: nonKasTotal } = usePemasukanLain(selectedSemesterId)
+const { totalPengeluaran: pengeluaranTotal } = usePengeluaran(selectedSemesterId)
 
 const summary = computed(() => publicKasQuery.data.value?.summary ?? {})
 const records = computed(() => publicKasQuery.data.value?.data ?? [])
@@ -136,11 +138,12 @@ function exportToExcel() {
         </div>
       </div>
 
-      <!-- StatCards with Consolidated Balance -->
+      <!-- StatCards with Consolidated Balance & Cash Out -->
       <StatCards 
         v-else 
         :summary="summary" 
         :pemasukan-lain-nominal="nonKasTotal"
+        :pengeluaran-nominal="pengeluaranTotal"
       />
     </section>
 

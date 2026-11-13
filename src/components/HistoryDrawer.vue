@@ -10,7 +10,9 @@ import {
   Trash2, 
   FileSpreadsheet, 
   PlusCircle, 
-  Edit3 
+  Edit3,
+  ArrowDownRight,
+  RotateCcw
 } from 'lucide-vue-next'
 import { useHistory } from '../composables/useHistory'
 import { useSemester } from '../composables/useSemester'
@@ -85,6 +87,18 @@ function getActionInfo(action) {
         icon: Trash2,
         bg: 'bg-rose-50 text-rose-700 border-rose-200',
       }
+    case 'EXPENSE_CREATE':
+      return {
+        label: 'Pengeluaran Kas',
+        icon: ArrowDownRight,
+        bg: 'bg-rose-50 text-rose-700 border-rose-200',
+      }
+    case 'EXPENSE_DELETE':
+      return {
+        label: 'Batal Belanja',
+        icon: RotateCcw,
+        bg: 'bg-amber-50 text-amber-700 border-amber-200',
+      }
     case 'IMPORT_EXCEL':
       return {
         label: 'Import Excel/CSV',
@@ -142,7 +156,7 @@ function getActionInfo(action) {
               <History class="h-5 w-5" />
             </div>
             <div>
-              <h2 class="text-base font-extrabold text-slate-900">Riwayat Pembayaran</h2>
+              <h2 class="text-base font-extrabold text-slate-900">Riwayat Pembayaran & Kas</h2>
               <p class="text-xs text-slate-500 font-medium">
                 {{ selectedSemester?.nama || 'Semester Aktif' }}
               </p>
@@ -176,7 +190,7 @@ function getActionInfo(action) {
               v-model="search"
               type="search"
               class="form-input pl-9 pr-4 py-2 text-xs"
-              placeholder="Cari nama atau NIM di riwayat..."
+              placeholder="Cari nama, NIM, atau keterangan..."
             />
           </div>
         </div>
@@ -195,7 +209,7 @@ function getActionInfo(action) {
             </div>
             <p class="font-bold text-slate-800 text-sm">Belum ada riwayat tercatat</p>
             <p class="text-xs text-slate-500 mt-1 max-w-xs">
-              Semua aktivitas pembayaran, pembaruan status, atau mutasi data kas akan muncul di timeline ini secara otomatis.
+              Semua aktivitas pembayaran mahasiswa, belanja kelas, dan mutasi kas akan muncul di timeline ini secara otomatis.
             </p>
           </div>
 
@@ -218,12 +232,15 @@ function getActionInfo(action) {
               <div class="flex-1 rounded-2xl border border-slate-100 bg-slate-50/60 p-3.5 transition-colors hover:bg-white hover:shadow-sm">
                 <div class="flex items-start justify-between gap-2">
                   <div>
-                    <span class="inline-block rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-600">
+                    <span 
+                      class="inline-block rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider"
+                      :class="item.aksi === 'EXPENSE_CREATE' ? 'bg-rose-100 text-rose-800' : 'bg-slate-100 text-slate-600'"
+                    >
                       {{ getActionInfo(item.aksi).label }}
                     </span>
                     <p class="font-bold text-slate-900 text-xs mt-1">
                       {{ item.nama }}
-                      <span v-if="item.nim" class="font-normal font-mono text-slate-500">({{ item.nim }})</span>
+                      <span v-if="item.nim && item.nim !== '-'" class="font-normal font-mono text-slate-500">({{ item.nim }})</span>
                     </p>
                   </div>
                   <span class="text-[11px] font-medium text-slate-400 shrink-0">
@@ -231,7 +248,12 @@ function getActionInfo(action) {
                   </span>
                 </div>
 
-                <div v-if="item.nominal" class="mt-2 text-xs font-mono font-bold text-slate-800">
+                <div 
+                  v-if="item.nominal" 
+                  class="mt-2 text-xs font-mono font-bold"
+                  :class="item.aksi === 'EXPENSE_CREATE' ? 'text-rose-600' : 'text-slate-800'"
+                >
+                  <span v-if="item.aksi === 'EXPENSE_CREATE'">- </span>
                   {{ formatCurrency(item.nominal) }}
                 </div>
 

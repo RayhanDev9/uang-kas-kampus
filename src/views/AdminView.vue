@@ -16,7 +16,10 @@ import {
   GraduationCap,
   Calendar,
   Layers,
-  Sparkles
+  Sparkles,
+  Receipt,
+  ArrowDownRight,
+  ExternalLink
 } from 'lucide-vue-next'
 import { getErrorMessage } from '../api/axios'
 import KasFormModal from '../components/KasFormModal.vue'
@@ -25,18 +28,21 @@ import KasImportModal from '../components/KasImportModal.vue'
 import { useKas } from '../composables/useKas'
 import { useSemester } from '../composables/useSemester'
 import { usePemasukanLain } from '../composables/usePemasukanLain'
+import { usePengeluaran } from '../composables/usePengeluaran'
 
 const { selectedSemesterId, selectedSemester, semesters, createSemester, activateSemester } = useSemester()
 const { kasQuery, createKas, updateKas, deleteKas } = useKas({ semesterId: selectedSemesterId })
 const { records: nonKasRecords, totalNominal: nonKasTotal, createPemasukanLain, deletePemasukanLain, pemasukanLainQuery } = usePemasukanLain(selectedSemesterId)
+const { records: pengeluaranRecords, totalPengeluaran, createPengeluaran, deletePengeluaran, pengeluaranQuery } = usePengeluaran(selectedSemesterId)
 
-const activeTab = ref('kas') // 'kas' | 'non-kas' | 'semester'
+const activeTab = ref('kas') // 'kas' | 'non-kas' | 'pengeluaran' | 'semester'
 const pin = ref('')
 const modalOpen = ref(false)
 const importModalOpen = ref(false)
 const editingRecord = ref(null)
 const recordToDelete = ref(null)
 const nonKasToDelete = ref(null)
+const pengeluaranToDelete = ref(null)
 
 // Non-Kas Form state
 const nonKasForm = reactive({
@@ -45,6 +51,17 @@ const nonKasForm = reactive({
   nominal: '',
   tanggalMasuk: new Date().toISOString().substring(0, 10),
   keterangan: '',
+})
+
+// Pengeluaran (Cash Out) Form state
+const pengeluaranForm = reactive({
+  judul: '',
+  kategori: 'Perlengkapan Kelas',
+  nominal: '',
+  tanggalPengeluaran: new Date().toISOString().substring(0, 10),
+  penanggungJawab: '',
+  keterangan: '',
+  buktiNotaUrl: '',
 })
 
 // Semester Form state
@@ -79,9 +96,23 @@ function dismissToast() {
 }
 
 const isSaving = computed(() => createKas.isPending.value || updateKas.isPending.value)
-const isDeleting = computed(() => deleteKas.isPending.value || deletePemasukanLain.isPending.value)
+const isDeleting = computed(() => deleteKas.isPending.value || deletePemasukanLain.isPending.value || deletePengeluaran.isPending.value)
 const isSavingNonKas = computed(() => createPemasukanLain.isPending.value)
+const isSavingPengeluaran = computed(() => createPengeluaran.isPending.value)
 const isSavingSemester = computed(() => createSemester.isPending.value)
+
+const kasLunasTotal = computed(() => {
+  return (kasQuery.data.value?.data || [])
+    .filter((k) => k.status === 'Lunas')
+    .reduce((acc, curr) => acc + (Number(curr.nominal) || 0), 0)
+})
+
+const totalPemasukanAll = computed(() => kasLunasTotal.value + nonKasTotal.value)
+const sisaKasTersedia = computed(() => totalPemasukanAll.value - totalPengeluaran.value)
+const isDeficitRisk = computed(() => {
+  const nominalInput = Number(pengeluaranForm.nominal) || 0
+  return nominalInput > 0 && nominalInput > sisaKasTersedia.value
+})
 
 const formatCurrency = (value) =>
   new Intl.NumberFormat('id-ID', {
@@ -177,6 +208,74 @@ async function executeDeleteNonKas(item) {
       pin: pin.value,
     })
     showToast('success', `Pemasukan "${item.judul}" berhasil dihapus.`)
+  } catch (error) {
+    showToast('error', getErrorMessage(error))
+  }
+}
+
+// Pengeluaran (Cash Out) Handlers
+async function submitPengeluaran() {
+  if (!pin.value.trim()) {
+    showToast('error', 'PIN bendahara wajib diisi untuk otorisasi.')
+    return
+  }
+
+  const nominal = Number(pengeluaranForm.nominal)
+  if (!nominal || nominal < 1) {
+    showToast('error', 'Nominal pengeluaran harus berupa angka minimal Rp 1.')
+    return
+  }
+
+  if (nominal > sisaKasTersedia.value) {
+    const proceed = window.confirm(
+      `Peringatan: Nominal belanja (${formatCurrency(nominal)}) melebihi sisa saldo kas yang tersedia (${formatCurrency(sisaKasTersedia.value)}). Lanjutkan pencatatan?`
+    )
+    if (!proceed) return
+  }
+
+  try {
+    await createPengeluaran.mutateAsync({
+      payload: {
+        semesterId: selectedSemesterId.value,
+        judul: pengeluaranForm.judul.trim(),
+        kategori: pengeluaranForm.kategori,
+        nominal,
+        tanggalPengeluaran: pengeluaranForm.tanggalPengeluaran,
+        penanggungJawab: pengeluaranForm.penanggungJawab.trim(),
+        keterangan: pengeluaranForm.keterangan ? pengeluaranForm.keterangan.trim() : '',
+        buktiNotaUrl: pengeluaranForm.buktiNotaUrl ? pengeluaranForm.buktiNotaUrl.trim() : '',
+      },
+      pin: pin.value,
+    })
+    showToast('success', 'Pengeluaran kas berhasil dicatat.')
+    pengeluaranForm.judul = ''
+    pengeluaranForm.nominal = ''
+    pengeluaranForm.penanggungJawab = ''
+    pengeluaranForm.keterangan = ''
+    pengeluaranForm.buktiNotaUrl = ''
+  } catch (error) {
+    showToast('error', getErrorMessage(error))
+  }
+}
+
+function confirmDeletePengeluaran(item) {
+  pengeluaranToDelete.value = item
+}
+
+async function executeDeletePengeluaran() {
+  if (!pengeluaranToDelete.value) return
+  if (!pin.value.trim()) {
+    showToast('error', 'PIN bendahara wajib diisi untuk otorisasi.')
+    return
+  }
+  const item = pengeluaranToDelete.value
+  try {
+    await deletePengeluaran.mutateAsync({
+      id: item._id,
+      pin: pin.value,
+    })
+    showToast('success', `Pengeluaran "${item.judul}" berhasil dibatalkan/dihapus.`)
+    pengeluaranToDelete.value = null
   } catch (error) {
     showToast('error', getErrorMessage(error))
   }
@@ -341,6 +440,18 @@ function exportExcel() {
         >
           <Coins class="h-4 w-4" />
           <span>Pemasukan Non-Kas (Sisa Lalu / Sponsor)</span>
+        </button>
+
+        <button
+          type="button"
+          class="border-b-2 py-3 text-sm font-bold transition-all duration-150 inline-flex items-center gap-2"
+          :class="activeTab === 'pengeluaran' 
+            ? 'border-rose-600 text-rose-800' 
+            : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'"
+          @click="activeTab = 'pengeluaran'"
+        >
+          <Receipt class="h-4 w-4" />
+          <span>Pengeluaran (Belanja Kelas)</span>
         </button>
 
         <button
@@ -545,6 +656,276 @@ function exportExcel() {
       </div>
     </section>
 
+    <!-- TAB: Pengeluaran (Belanja Kelas / Cash Out) -->
+    <section v-else-if="activeTab === 'pengeluaran'" class="space-y-6">
+      <!-- Input Card for Cash Out -->
+      <div class="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-card sm:p-7">
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-1">
+          <div class="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-rose-700">
+            <Receipt class="h-3.5 w-3.5" />
+            <span>Pencatatan Belanja Kelas (Cash Out)</span>
+          </div>
+          <div class="inline-flex items-center gap-2 rounded-xl bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700">
+            <span>Sisa Kas Tersedia:</span>
+            <span :class="sisaKasTersedia <= 0 ? 'text-rose-600' : 'text-emerald-700'">
+              {{ formatCurrency(sisaKasTersedia) }}
+            </span>
+          </div>
+        </div>
+
+        <h3 class="text-xl font-black text-slate-900">Catat Penarikan Uang Kas Kelas</h3>
+        <p class="text-xs text-slate-500 mt-1">
+          Catat setiap dana kas yang ditarik untuk fotokopi modul, perlengkapan kelas, konsumsi acara, atau santunan sosial secara transparan.
+        </p>
+
+        <!-- Deficit Warning Banner -->
+        <div v-if="isDeficitRisk" class="mt-4 flex items-start gap-3 rounded-2xl border border-rose-300 bg-rose-50/90 p-4 text-xs text-rose-900 shadow-sm" role="alert">
+          <AlertTriangle class="h-5 w-5 shrink-0 text-rose-600 mt-0.5" />
+          <div>
+            <p class="font-bold">Peringatan: Nominal Belanja Melebihi Saldo Kas (Defisit)</p>
+            <p class="mt-1 leading-relaxed text-rose-800">
+              Nominal yang diajukan (<strong>{{ formatCurrency(pengeluaranForm.nominal) }}</strong>) lebih besar dari sisa saldo kas yang tersedia (<strong>{{ formatCurrency(sisaKasTersedia) }}</strong>). Sistem akan memvalidasi agar tidak terjadi defisit saldo yang tidak terotorisasi.
+            </p>
+          </div>
+        </div>
+
+        <form class="mt-5 space-y-4" @submit.prevent="submitPengeluaran">
+          <div class="grid gap-4 sm:grid-cols-3">
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600">
+              Keperluan / Judul Belanja
+              <input 
+                v-model="pengeluaranForm.judul" 
+                required 
+                class="form-input mt-1.5" 
+                placeholder="Contoh: Fotokopi Modul Praktikum" 
+              />
+            </label>
+
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600">
+              Kategori Belanja
+              <select v-model="pengeluaranForm.kategori" required class="form-input mt-1.5">
+                <option value="Akademik & Materi">Akademik & Materi</option>
+                <option value="Perlengkapan Kelas">Perlengkapan Kelas</option>
+                <option value="Acara & Konsumsi">Acara & Konsumsi</option>
+                <option value="Sosial & Santunan">Sosial & Santunan</option>
+                <option value="Lainnya">Lainnya</option>
+              </select>
+            </label>
+
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600">
+              Nominal Pengeluaran (Rp)
+              <input 
+                v-model="pengeluaranForm.nominal" 
+                required 
+                type="number" 
+                min="1" 
+                class="form-input mt-1.5 font-mono" 
+                placeholder="75000" 
+              />
+            </label>
+          </div>
+
+          <div class="grid gap-4 sm:grid-cols-3">
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600">
+              Tanggal Belanja / Tarik
+              <input 
+                v-model="pengeluaranForm.tanggalPengeluaran" 
+                type="date" 
+                required 
+                class="form-input mt-1.5" 
+              />
+            </label>
+
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600">
+              Penanggung Jawab / Penerima
+              <input 
+                v-model="pengeluaranForm.penanggungJawab" 
+                required 
+                class="form-input mt-1.5" 
+                placeholder="Contoh: Budi Santoso (Sie Perlengkapan)" 
+              />
+            </label>
+
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600">
+              Tautan Bukti Nota / Kwitansi (Opsional)
+              <input 
+                v-model="pengeluaranForm.buktiNotaUrl" 
+                type="url" 
+                class="form-input mt-1.5" 
+                placeholder="https://..." 
+              />
+            </label>
+          </div>
+
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-600">
+            Catatan / Rincian Belanja
+            <input 
+              v-model="pengeluaranForm.keterangan" 
+              class="form-input mt-1.5" 
+              placeholder="Contoh: 35 set modul untuk lab pertemuan 4..." 
+            />
+          </label>
+
+          <div class="flex justify-end pt-2">
+            <button 
+              type="submit" 
+              class="btn-primary bg-rose-600 hover:bg-rose-700 text-xs font-bold inline-flex items-center gap-1.5"
+              :disabled="isSavingPengeluaran"
+            >
+              <ArrowDownRight class="h-4 w-4" />
+              <span>{{ isSavingPengeluaran ? 'Menyimpan...' : 'Simpan Pengeluaran Kas' }}</span>
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- List of Pengeluaran -->
+      <div class="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-card">
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-4">
+          <div>
+            <h4 class="font-extrabold text-slate-900 text-base">Daftar Pengeluaran & Belanja Kelas</h4>
+            <p class="text-xs text-slate-500">Semester: {{ selectedSemester?.nama }}</p>
+          </div>
+          <span class="rounded-2xl bg-rose-50 px-3.5 py-1.5 text-xs font-black text-rose-800">
+            Total Belanja: {{ formatCurrency(totalPengeluaran) }}
+          </span>
+        </div>
+
+        <div v-if="pengeluaranRecords.length === 0" class="py-12 text-center text-xs text-slate-500">
+          Belum ada catatan pengeluaran kas untuk semester ini.
+        </div>
+
+        <!-- Table View Desktop -->
+        <div v-else class="mt-4 hidden md:block overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-600">
+            <thead class="bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+              <tr>
+                <th scope="col" class="py-3 px-3 w-12 text-center">No.</th>
+                <th scope="col" class="py-3 px-4">Keperluan Belanja</th>
+                <th scope="col" class="py-3 px-3">Kategori</th>
+                <th scope="col" class="py-3 px-3">Tanggal</th>
+                <th scope="col" class="py-3 px-4">Penanggung Jawab</th>
+                <th scope="col" class="py-3 px-4 text-right">Nominal (Rp)</th>
+                <th scope="col" class="py-3 px-3 text-center">Bukti</th>
+                <th scope="col" class="py-3 px-3 text-center">Aksi</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              <tr 
+                v-for="(item, idx) in pengeluaranRecords" 
+                :key="item._id" 
+                class="hover:bg-slate-50/80 transition"
+              >
+                <td class="py-3.5 px-3 text-center font-mono font-bold text-slate-400">
+                  {{ idx + 1 }}
+                </td>
+                <td class="py-3.5 px-4">
+                  <p class="font-bold text-slate-900">{{ item.judul }}</p>
+                  <p v-if="item.keterangan" class="text-[11px] text-slate-400 italic mt-0.5">
+                    {{ item.keterangan }}
+                  </p>
+                </td>
+                <td class="py-3.5 px-3">
+                  <span class="inline-block rounded-md px-2 py-0.5 text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200/60">
+                    {{ item.kategori }}
+                  </span>
+                </td>
+                <td class="py-3.5 px-3 text-slate-500">
+                  {{ item.tanggalPengeluaran?.substring(0, 10) }}
+                </td>
+                <td class="py-3.5 px-4 font-medium text-slate-700">
+                  {{ item.penanggungJawab }}
+                </td>
+                <td class="py-3.5 px-4 text-right font-mono font-bold text-rose-600">
+                  - {{ formatCurrency(item.nominal) }}
+                </td>
+                <td class="py-3.5 px-3 text-center">
+                  <a
+                    v-if="item.buktiNotaUrl"
+                    :href="item.buktiNotaUrl"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="inline-flex items-center gap-1 text-[11px] font-semibold text-teal-700 hover:text-teal-900 underline"
+                  >
+                    <span>Nota</span>
+                    <ExternalLink class="h-3 w-3" />
+                  </a>
+                  <span v-else class="text-slate-300">—</span>
+                </td>
+                <td class="py-3.5 px-3 text-center">
+                  <button
+                    type="button"
+                    class="rounded-lg border border-rose-200 p-1.5 text-rose-600 hover:bg-rose-50 transition"
+                    title="Hapus pengeluaran"
+                    @click="confirmDeletePengeluaran(item)"
+                  >
+                    <Trash2 class="h-3.5 w-3.5" />
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Mobile Cards List with Numbering -->
+        <div v-if="pengeluaranRecords.length > 0" class="mt-4 space-y-3 md:hidden">
+          <div 
+            v-for="(item, idx) in pengeluaranRecords" 
+            :key="item._id" 
+            class="rounded-2xl border border-slate-100 bg-slate-50/60 p-4 space-y-2.5"
+          >
+            <div class="flex items-start justify-between gap-2">
+              <div class="flex items-center gap-2">
+                <span class="grid h-6 w-6 place-items-center rounded-lg bg-slate-200/80 font-mono text-[10px] font-bold text-slate-600">
+                  #{{ idx + 1 }}
+                </span>
+                <span class="rounded px-2 py-0.5 text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200/60">
+                  {{ item.kategori }}
+                </span>
+              </div>
+              <span class="font-mono font-bold text-rose-600 text-sm">
+                - {{ formatCurrency(item.nominal) }}
+              </span>
+            </div>
+
+            <div>
+              <p class="font-bold text-slate-900 text-sm">{{ item.judul }}</p>
+              <p v-if="item.keterangan" class="text-xs text-slate-500 italic mt-0.5">
+                "{{ item.keterangan }}"
+              </p>
+            </div>
+
+            <div class="flex items-center justify-between border-t border-slate-200/60 pt-2 text-xs text-slate-500">
+              <div>
+                <p class="font-medium text-slate-700">{{ item.penanggungJawab }}</p>
+                <p class="text-[11px] text-slate-400">{{ item.tanggalPengeluaran?.substring(0, 10) }}</p>
+              </div>
+              <div class="flex items-center gap-2">
+                <a
+                  v-if="item.buktiNotaUrl"
+                  :href="item.buktiNotaUrl"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-semibold text-teal-700 hover:bg-slate-50 inline-flex items-center gap-1"
+                >
+                  <span>Nota</span>
+                  <ExternalLink class="h-3 w-3" />
+                </a>
+                <button
+                  type="button"
+                  class="rounded-lg border border-rose-200 bg-white p-1.5 text-rose-600 hover:bg-rose-50 transition"
+                  title="Hapus pengeluaran"
+                  @click="confirmDeletePengeluaran(item)"
+                >
+                  <Trash2 class="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- TAB 3: Kelola Semester -->
     <section v-else-if="activeTab === 'semester'" class="space-y-6">
       <!-- Create Semester Form -->
@@ -700,6 +1081,59 @@ function exportExcel() {
             >
               <Trash2 class="h-4 w-4" />
               <span>{{ isDeleting ? 'Menghapus...' : 'Hapus Catatan' }}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <!-- Custom Delete Pengeluaran Confirmation Modal -->
+    <Transition
+      enter-active-class="transition duration-150 ease-out"
+      enter-from-class="opacity-0 scale-95"
+      enter-to-class="opacity-100 scale-100"
+      leave-active-class="transition duration-100 ease-in"
+      leave-from-class="opacity-100 scale-100"
+      leave-to-class="opacity-0 scale-95"
+    >
+      <div 
+        v-if="pengeluaranToDelete" 
+        class="fixed inset-0 z-50 grid place-items-center bg-slate-950/60 p-4 backdrop-blur-sm"
+        @click.self="pengeluaranToDelete = null"
+      >
+        <div class="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl sm:p-7">
+          <div class="flex items-start gap-4">
+            <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-rose-50 text-rose-600">
+              <AlertTriangle class="h-6 w-6" />
+            </div>
+            <div>
+              <h3 class="text-lg font-black text-slate-900">Konfirmasi Hapus Pengeluaran</h3>
+              <p class="mt-1.5 text-xs leading-relaxed text-slate-500">
+                Apakah Anda yakin ingin membatalkan/menghapus catatan belanja 
+                <strong class="text-slate-800 font-bold">"{{ pengeluaranToDelete.judul }}"</strong> 
+                sebesar <strong class="text-rose-600 font-mono">{{ formatCurrency(pengeluaranToDelete.nominal) }}</strong> 
+                oleh {{ pengeluaranToDelete.penanggungJawab }}? Dana akan dikembalikan ke saldo kas riil.
+              </p>
+            </div>
+          </div>
+
+          <div class="mt-6 flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+            <button 
+              type="button" 
+              class="btn-secondary" 
+              :disabled="isDeletingPengeluaran"
+              @click="pengeluaranToDelete = null"
+            >
+              Batal
+            </button>
+            <button 
+              type="button" 
+              class="inline-flex items-center gap-1.5 rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-rose-700 active:scale-95 disabled:opacity-60"
+              :disabled="isDeletingPengeluaran"
+              @click="executeDeletePengeluaran"
+            >
+              <Trash2 class="h-4 w-4" />
+              <span>{{ isDeletingPengeluaran ? 'Menghapus...' : 'Hapus Belanja' }}</span>
             </button>
           </div>
         </div>
