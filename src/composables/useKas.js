@@ -4,10 +4,11 @@ import api from '../api/axios'
 
 const queryKey = ['kas']
 
-async function fetchKas({ search = '', status = '' } = {}) {
+async function fetchKas({ search = '', status = '', semesterId = '' } = {}) {
   const params = new URLSearchParams()
   if (search) params.set('search', search)
   if (status) params.set('status', status)
+  if (semesterId && semesterId !== 'default-active') params.set('semesterId', semesterId)
   const query = params.toString()
   const { data } = await api.get(`/kas${query ? `?${query}` : ''}`)
 
@@ -28,6 +29,7 @@ export function useKas(filters = {}) {
   const currentFilters = computed(() => ({
     search: String(toValue(filters.search) ?? '').trim(),
     status: toValue(filters.status) === 'Semua' ? '' : String(toValue(filters.status) ?? ''),
+    semesterId: String(toValue(filters.semesterId) ?? '').trim(),
   }))
   const filteredQueryKey = computed(() => [...queryKey, currentFilters.value])
   const kasQuery = useQuery({
@@ -43,7 +45,10 @@ export function useKas(filters = {}) {
       if (!data?.success) throw new Error(data?.message || 'Gagal mencatat kas.')
       return data
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey })
+      queryClient.invalidateQueries({ queryKey: ['history'] })
+    },
   })
 
   const updateKas = useMutation({
@@ -55,7 +60,10 @@ export function useKas(filters = {}) {
       if (!data?.success) throw new Error(data?.message || 'Gagal memperbarui kas.')
       return data
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey })
+      queryClient.invalidateQueries({ queryKey: ['history'] })
+    },
   })
 
   const deleteKas = useMutation({
@@ -67,8 +75,28 @@ export function useKas(filters = {}) {
       if (!data?.success) throw new Error(data?.message || 'Gagal menghapus data kas.')
       return data
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey })
+      queryClient.invalidateQueries({ queryKey: ['history'] })
+    },
   })
 
-  return { kasQuery, createKas, updateKas, deleteKas }
+  const importKas = useMutation({
+    mutationFn: async ({ formData, pin }) => {
+      const { data } = await api.post('/kas/import', formData, {
+        headers: {
+          'x-admin-pin': requirePin(pin),
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+      if (!data?.success) throw new Error(data?.message || 'Gagal mengimpor data kas.')
+      return data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey })
+      queryClient.invalidateQueries({ queryKey: ['history'] })
+    },
+  })
+
+  return { kasQuery, createKas, updateKas, deleteKas, importKas }
 }

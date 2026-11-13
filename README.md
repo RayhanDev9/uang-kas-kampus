@@ -38,6 +38,26 @@ API kas: [`GET /api/kas`](https://backend-uang-kas-kampus.vercel.app/api/kas)
 - Informasi pembayaran dan QRIS. Detail rekening dan gambar QRIS perlu disediakan oleh bendahara.
 - State loading, data kosong, dan error API.
 
+---
+
+## 🚀 Rencana Pengembangan 4 Fitur Baru
+
+Rencana teknis, arsitektur, dan pembagian tugas untuk fitur:
+1. **Pemasukan Lain**: Uang masuk selain iuran kas rutin (sisa semester lalu, sponsor, dana usaha).
+2. **History Pembayaran**: Audit trail riwayat pencatatan dan perubahan status bayar.
+3. **Pemisahan Data per Semester**: Multi-semester dengan filter semester aktif dan arsip.
+4. **Export & Import Excel (.xlsx / .csv)**: Unduh laporan dan batch upload data siswa.
+
+Spesifikasi dan aturan teknis lengkap telah dipisahkan ke dalam file dokumentasi masing-masing:
+
+| Layer | Dokumen Aturan & Spesifikasi | Isi Utama |
+|---|---|---|
+| **Database** | [**`db.md`**](file:///d:/data%20rayhan/programs/project-2/uang-kas-kampus/frontend/db.md) | ERD, Skema Mongoose (`Semester`, `Kas`, `PemasukanLain`, `PaymentHistory`), Indexing, & Migrasi Data |
+| **Backend** | [**`be.md`**](file:///d:/data%20rayhan/programs/project-2/uang-kas-kampus/frontend/be.md) | Kontrak REST API, Rumus Saldo Konsolidasi, Logging Mutasi, & Parser Import/Export Excel |
+| **Frontend** | [**`fe.md`**](file:///d:/data%20rayhan/programs/project-2/uang-kas-kampus/frontend/fe.md) | Global Semester State, Drawer Riwayat Pembayaran, Tab Non-Kas Bendahara, & Modal Upload Excel |
+
+---
+
 ## Teknologi
 
 ### Frontend
