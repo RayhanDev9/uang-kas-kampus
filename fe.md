@@ -1,12 +1,10 @@
 # 💻 Frontend UI/UX Architecture & Rules (`fe.md`)
 
-Dokumen spesifikasi teknis antarmuka Vue 3, TanStack Query, dan Tailwind CSS untuk aplikasi **KasKita**, mencakup pengelolaan state multi-semester, tampilan pemasukan non-kas, riwayat transaksi, dan modul import/export Excel.
+Dokumen spesifikasi teknis antarmuka Vue 3, TanStack Query, dan Tailwind CSS untuk aplikasi **KasKita**, mencakup pengelolaan state multi-semester, pemasukan non-kas, **pengeluaran kas (cash out / belanja kelas)**, riwayat transaksi, dan modul import/export Excel.
 
 ---
 
 ## 1. Arsitektur Komponen & State Management
-
-> Status: **Selesai Diimplementasikan (Teruji `npm run build` sukses)**
 
 ```text
 src/
@@ -14,119 +12,85 @@ src/
 │   ├── useKas.js             (Query & Mutation kas, diperbarui dengan parameter semesterId & importKas)
 │   ├── useSemester.js        (Global state semester aktif, list semester, & switch semester)
 │   ├── usePemasukanLain.js   (Query & Mutation pemasukan non-kas, saldo sisa, sponsor)
-│   └── useHistory.js         (Query timeline log audit riwayat pembayaran)
+│   ├── usePengeluaran.js     (BARU: Query & Mutation belanja kelas / penarikan kas)
+│   └── useHistory.js         (Query timeline log audit riwayat pembayaran & pengeluaran)
 ├── components/
 │   ├── Navbar.vue            (Disisipkan SemesterSwitcher & tombol pemicu HistoryDrawer)
 │   ├── SemesterSwitcher.vue  (Dropdown pemilih semester aktif/arsip)
-│   ├── StatCards.vue         (Breakdown Saldo Kas Mahasiswa + Pemasukan Non-Kas + Total Terkonsolidasi)
-│   ├── KasTable.vue          (Dual view desktop table & mobile cards)
+│   ├── StatCards.vue         (Saldo Bersih Kas + Total Pemasukan + Total Pengeluaran)
+│   ├── KasTable.vue          (Dual view desktop table dengan No. & mobile cards)
 │   ├── KasFormModal.vue      (Modal input data kas mahasiswa)
-│   ├── HistoryDrawer.vue     (Slide-over drawer timeline audit pembayaran)
+│   ├── HistoryDrawer.vue     (Slide-over drawer timeline audit mutasi masuk & keluar)
 │   └── KasImportModal.vue    (Modal drag-and-drop upload .xlsx/.csv & preview baris)
 └── views/
     ├── DashboardView.vue     (Integrasi switcher semester, banner arsip, tombol export & history)
-    ├── AdminView.vue         (Tab Kas Mahasiswa, Tab Pemasukan Non-Kas, Tab Kelola Semester, Export & Import)
+    ├── AdminView.vue         (Tab Kas, Tab Non-Kas, Tab Pengeluaran, Tab Semester, Export/Import)
     └── InfoView.vue          (Informasi transfer 1-click copy & QRIS preview)
 ```
 
 ---
 
-## 2. Global State Semester (`useSemester.js`)
+## 2. Composable Pengeluaran (`src/composables/usePengeluaran.js`) — [BARU]
 
-State semester diakses secara global di seluruh aplikasi:
-1. **Penyimpanan**: Simpan `currentSemesterId` di `localStorage` agar pilihan semester tidak hilang saat halaman di-refresh.
-2. **Sinkronisasi**:
-   - Saat aplikasi pertama kali dimuat, panggil endpoint `GET /api/semesters/active`.
-   - Jika `currentSemesterId` di `localStorage` kosong atau tidak valid, arahkan ke semester aktif secara otomatis.
-3. **Penyegaran Data (*Cache Invalidation*)**:
-   - Ketika pengguna mengganti semester melalui `SemesterSwitcher`, invalidate query TanStack Query (`queryClient.invalidateQueries(['kas', 'summary', 'history', 'pemasukanLain'])`) sehingga data di semua view langsung ter-update seketika (*reactive*).
-
----
-
-## 3. Spesifikasi Fitur & Antarmuka
-
-### A. Komponen `SemesterSwitcher.vue` (Di Header/Navbar)
-- Tampilkan pill dropdown yang menampilkan nama semester saat ini (contoh: `"Semester Ganjil 2024/2025"`).
-- Berikan label badge hijau `"Aktif"` pada semester yang sedang berjalan.
-- Semester yang sudah lewat diberi label abu-abu `"Arsip"`.
-- Jika pengguna memilih semester arsip, tampilkan banner peringatan di bagian atas dashboard:
-  > ⚠️ *Anda sedang melihat data arsip Semester Genap 2023/2024. Status data ini hanya untuk ditinjau (Read-Only).*
+Mengelola pemanggilan API untuk pencatatan uang keluar:
+* `pengeluaranQuery({ semesterId, search, kategori })`: Mengambil daftar belanja kelas dari `GET /api/pengeluaran`.
+* `totalPengeluaran`: Nilai komputasi $\sum \text{nominal pengeluaran}$ pada semester aktif.
+* `createPengeluaran({ payload, pin })`: Mutasi `POST /api/pengeluaran` dengan header `x-admin-pin`.
+* `deletePengeluaran({ id, pin })`: Mutasi `DELETE /api/pengeluaran/:id` dengan header `x-admin-pin`.
+* **Invalidasi Cache**: Saat pengeluaran ditambah atau dihapus, otomatis perbarui query `['pengeluaran']`, `['kas']`, dan `['history']`.
 
 ---
 
-### B. Pembaruan Kartu Ringkasan Saldo (`StatCards.vue`)
-Rombak kartu ringkasan untuk menampilkan transparansi akumulasi kas kelas:
+## 3. Spesifikasi UI Fitur Pengeluaran (Cash Out)
 
-1. **Kartu 1 (Hero Gradient - Total Saldo Terkonsolidasi)**:
-   - Menampilkan total uang kas kelas sebenarnya:
-     $$\text{Total Saldo} = \text{Kas Mahasiswa Lunas} + \text{Pemasukan Lain}$$
-   - Dilengkapi tooltip rincian: "Iuran Mhs: Rp 1.500.000 + Sisa Lalu & Lainnya: Rp 350.000".
-2. **Kartu 2 (Kas Mahasiswa)**:
-   - Menampilkan jumlah mahasiswa lunas vs target total mahasiswa.
-   - Progress bar capaian target kas semester ini.
-3. **Kartu 3 (Pemasukan Non-Kas)**:
-   - Menampilkan total pemasukan di luar iuran mahasiswa.
-   - Dilengkapi badge kategori terbesar (misal: `"Sisa Semester Lalu: Rp 300.000"`).
+### A. Kartu Ringkasan Saldo Kas (`StatCards.vue`)
+Diperbarui dengan kartu metrik uang keluar yang jelas dan transparan:
 
----
-
-### C. Drawer Timeline Riwayat Pembayaran (`HistoryDrawer.vue`)
-Menampilkan log mutasi kas secara kronologis tanpa mengganggu tampilan tabel utama:
-- Dibuka dengan menekan tombol **"Riwayat Kas"** pada Navbar atau Dashboard.
-- Menggunakan animasi *slide-in* dari sisi kanan layar dengan backdrop blur.
-- **Elemen Tiap Baris Log**:
-  - Avatar / inisial mahasiswa.
-  - Teks deskripsi aksi: `"Budi Santoso diubah menjadi Lunas oleh Bendahara"`.
-  - Nominal mutasi uang (berwarna hijau untuk pemasukan).
-  - Waktu relatif human-readable (misal: `"15 menit yang lalu"`, `"Kemarin, 14:20"`).
-  - Kolom pencarian instan di dalam drawer untuk mencari riwayat berdasarkan Nama atau NIM.
+1. **Kartu 1 (Hero Gradient - Saldo Kas Riil / Bersih Saat Ini)**:
+   - Menampilkan uang kas yang benar-benar masih ada di tangan bendahara:
+     $$\text{Saldo Kas Bersih} = (\text{Kas Mahasiswa Lunas} + \text{Pemasukan Lain}) - \text{Total Pengeluaran}$$
+   - Tooltip rincian: "Pemasukan: Rp X — Pengeluaran: Rp Y".
+2. **Kartu 2 (Akumulasi Pemasukan)**:
+   - Total seluruh dana yang pernah masuk (Iuran Mahasiswa + Sisa Semester Lalu/Sponsor).
+   - Indikator persentase kepatuhan bayar mahasiswa.
+3. **Kartu 3 (Total Pengeluaran / Belanja Kas)**:
+   - Ditandai dengan warna aksen Rose/Amber yang elegan dan ikon `ArrowDownRight` atau `Receipt`.
+   - Menampilkan total uang kas yang telah dibelanjakan.
+   - Badge kategori belanja terbesar (misal: `"Akademik & Materi: Rp 120.000"`).
 
 ---
 
-### D. Manajemen Pemasukan Lain di Ruang Bendahara (`AdminView.vue`)
-Menambahkan tab navigasi di halaman Admin:
-1. **Tab 1: Iuran Mahasiswa**:
-   - Pengelolaan data kas per mahasiswa (tambah, edit, hapus) seperti yang sudah berjalan.
-   - Tombol **Export Excel** dan **Import Excel/CSV**.
-2. **Tab 2: Pemasukan Non-Kas**:
-   - Formulir pencatatan uang masuk:
-     - Judul pemasukan (misal: *"Sisa Kas Semester Lalu"*).
-     - Pilihan kategori (dropdown: *Sisa Semester Lalu*, *Sponsor*, *Dana Usaha*, *Donasi*, *Lainnya*).
-     - Nominal (Rp) dan tanggal masuk.
-     - Catatan / keterangan tambahan.
-   - Tabel daftar pemasukan lain dengan opsi hapus (memerlukan PIN bendahara).
-3. **Tab 3: Kelola Semester**:
-   - Formulir pembuatan semester baru.
-   - Tombol "Jadikan Semester Aktif" dengan konfirmasi aman.
+### B. Tab Pengeluaran Kas di Ruang Bendahara (`AdminView.vue`)
+Menambahkan Tab baru: **"Pengeluaran (Belanja Kelas)"**:
+
+1. **Formulir Penarikan / Pengeluaran Kas**:
+   - **Judul Keperluan**: Input teks (contoh: *"Fotokopi Modul Praktikum"*, *"Beli Spidol & Kabel HDMI"*).
+   - **Kategori**: Dropdown (*Akademik & Materi*, *Perlengkapan Kelas*, *Acara & Konsumsi*, *Sosial & Santunan*, *Lainnya*).
+   - **Nominal (Rp)**: Validasi angka $\ge 1$. Tampilkan peringatan jika nominal melebihi sisa saldo kas yang ada.
+   - **Tanggal Pengeluaran**: Date picker (default hari ini).
+   - **Penanggung Jawab / Penerima Dana**: Input teks (contoh: *"Budi Santoso - Sie Perlengkapan"*).
+   - **Keterangan / Catatan**: Detail keperluan belanja.
+   - **Upload / URL Bukti Nota (Opsional)**: Tautan atau bukti foto nota pembelian.
+2. **Tabel Daftar Belanja Kas**:
+   - Kolom: `No`, `Keperluan / Judul`, `Kategori`, `Tanggal`, `Penanggung Jawab`, `Nominal (Rp)`, `Aksi (Hapus)`.
+   - Total rekapitulasi belanja semester ini di bagian header tabel.
 
 ---
 
-### E. Modul Export & Import File Excel (`KasImportModal.vue`)
-
-#### 1. Tombol Export Excel
-- Terdapat tombol **"Export ke Excel (.xlsx)"** di Dashboard dan Ruang Bendahara.
-- Saat diklik, trigger langsung unduhan file dari backend:
-  `window.open('/api/kas/export?semesterId=' + currentSemesterId + '&format=xlsx')`.
-- File yang diunduh langsung siap dicetak atau dilaporkan ke dosen/wali kelas.
-
-#### 2. Modal Import Data Excel / CSV
-Modal komprehensif untuk memudahkan bendahara memasukkan data banyak mahasiswa sekaligus:
-1. **Unduh Template**: Tautan tombol *"Unduh Format Template Excel"* agar bendahara tidak salah memasukkan nama kolom.
-2. **Area Drag-and-Drop**: Pengguna dapat menarik file `.xlsx` atau `.csv` ke dalam kotak upload atau memilih file dari komputer.
-3. **Client-Side Pre-parsing & Preview**:
-   - Menggunakan pustaka ringan di browser untuk membaca preview 5 baris pertama file yang dipilih sebelum dikirim ke server.
-   - Menampilkan total baris data yang ditemukan.
-4. **Input PIN & Eksekusi**:
-   - Masukkan PIN bendahara untuk otorisasi batch import.
-   - Tampilkan progress loading saat upload berjalan.
-   - Tampilkan laporan hasil: *"Berhasil mengimpor 35 data kas mahasiswa."*
+### C. Drawer Timeline Riwayat Kas (`HistoryDrawer.vue`)
+- Setiap pencatatan pengeluaran baru akan muncul di timeline dengan:
+  - Ikon **`ArrowDownRight` / `Receipt`** berlatar merah halus (`bg-rose-50 text-rose-700`).
+  - Label: `"Pengeluaran Kas"`.
+  - Judul: `"Fotokopi Modul Praktikum"` oleh *"Budi Santoso"*.
+  - Nominal berwarna merah: `"- Rp 75.000"`.
+  - Waktu pencatatan relatif (*"2 jam yang lalu"*).
 
 ---
 
-## 4. Aturan Desain & Pengalaman Pengguna (UX Rules)
+## 4. Aturan Pengalaman Pengguna (UX Rules)
 
-1. **Zero Layout Shifts**: Semua state loading tabel, cards, dan drawer wajib menggunakan komponen *shimmer skeleton* yang presisi.
-2. **Feedback Toast Instan**: Operasi simpan, update status, dan import wajib memunculkan floating toast notifikasi sukses/gagal di pojok kanan bawah.
-3. **Ergonomi Layar HP**:
-   - Dropdown semester dan tombol export/import tetap mudah diakses pada layar HP (min touch target: 44x44px).
-   - Tampilan tabel tetap mempertahankan dual-view (tabel di layar $\ge$ 768px, *stacked cards* di layar $<$ 768px).
+1. **Peringatan Kas Tidak Cukup (Deficit Warning)**:
+   Jika bendahara menginput nominal belanja yang melebihi saldo kas yang tersedia, tampilkan pesan peringatan di form:
+   > ⚠️ *Peringatan: Nominal belanja melebihi sisa saldo kas yang ada saat ini (Rp X).*
+2. **Konfirmasi Hapus Pengeluaran**:
+   Menghapus catatan belanja wajib melalui Modal Konfirmasi Kustom dan mengembalikan saldo kas secara reaktif seketika.
