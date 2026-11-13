@@ -32,31 +32,39 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div ref="dropdownRef" class="relative inline-block text-left">
+  <div ref="dropdownRef" class="relative inline-block text-left min-w-0 max-w-full">
     <button
       type="button"
-      class="group inline-flex items-center gap-2 rounded-full border border-slate-200/90 bg-white/90 px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition-all duration-150 hover:border-emerald-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 active:scale-95"
+      class="group inline-flex items-center gap-1.5 sm:gap-2 rounded-full border border-slate-200/90 bg-white/90 px-2.5 py-1 sm:px-3 sm:py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition-all duration-150 hover:border-emerald-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 active:scale-95 max-w-full min-w-0"
       :aria-expanded="isOpen"
       aria-haspopup="true"
       @click="toggleDropdown"
     >
-      <div class="grid h-5 w-5 place-items-center rounded-full bg-emerald-50 text-emerald-700 group-hover:bg-emerald-100 transition-colors">
+      <div class="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-emerald-50 text-emerald-700 group-hover:bg-emerald-100 transition-colors">
         <GraduationCap class="h-3 w-3" />
       </div>
 
-      <span class="max-w-[130px] truncate text-slate-800 font-bold sm:max-w-[180px]">
+      <span class="max-w-[70px] min-[400px]:max-w-[100px] min-[520px]:max-w-[140px] sm:max-w-[180px] truncate text-slate-800 font-bold">
         {{ selectedSemester?.nama || 'Pilih Semester' }}
       </span>
 
+      <!-- Status dot on mobile screens (< sm) -->
+      <span 
+        class="h-2 w-2 rounded-full shrink-0 sm:hidden" 
+        :class="selectedSemester?.isAktif ? 'bg-emerald-500 ring-2 ring-emerald-200' : 'bg-slate-400'"
+        :title="selectedSemester?.isAktif ? 'Semester Aktif' : 'Semester Arsip'"
+      ></span>
+
+      <!-- Full status badge on sm+ screens -->
       <span
-        class="rounded-full px-1.5 py-0.2 text-[10px] font-extrabold uppercase tracking-wider"
+        class="hidden sm:inline-block rounded-full px-1.5 py-0.2 text-[10px] font-extrabold uppercase tracking-wider shrink-0"
         :class="selectedSemester?.isAktif ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'"
       >
         {{ selectedSemester?.isAktif ? 'Aktif' : 'Arsip' }}
       </span>
 
       <ChevronDown
-        class="h-3.5 w-3.5 text-slate-400 transition-transform duration-200"
+        class="h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform duration-200"
         :class="{ 'rotate-180': isOpen }"
       />
     </button>
