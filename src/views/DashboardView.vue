@@ -12,7 +12,8 @@ import {
   Download, 
   History, 
   AlertTriangle,
-  FileSpreadsheet
+  FileSpreadsheet,
+  HandCoins
 } from 'lucide-vue-next'
 import { getErrorMessage } from '../api/axios'
 import KasTable from '../components/KasTable.vue'
@@ -30,10 +31,17 @@ const historyOpen = ref(false)
 const { selectedSemesterId, selectedSemester, isViewingArchived } = useSemester()
 const { kasQuery: publicKasQuery } = useKas({ search, status, semesterId: selectedSemesterId })
 const { totalNominal: nonKasTotal } = usePemasukanLain(selectedSemesterId)
-const { totalPengeluaran: pengeluaranTotal } = usePengeluaran(selectedSemesterId)
+const { totalPengeluaran: pengeluaranTotal, totalRefund: refundTotal } = usePengeluaran(selectedSemesterId)
 
 const summary = computed(() => publicKasQuery.data.value?.summary ?? {})
 const records = computed(() => publicKasQuery.data.value?.data ?? [])
+
+const formatCurrency = (value) =>
+  new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    maximumFractionDigits: 0,
+  }).format(Number(value) || 0)
 
 const filterOptions = [
   { value: 'Semua', label: 'Semua Status' },
@@ -61,6 +69,19 @@ function exportToExcel() {
       <AlertTriangle class="h-4 w-4 shrink-0 text-amber-600" />
       <p class="leading-relaxed">
         Anda sedang melihat data arsip <strong>{{ selectedSemester?.nama }}</strong>. Status data ini bersifat peninjauan historis (read-only).
+      </p>
+    </div>
+
+    <!-- Refund Transparency Banner (jika ada pengembalian kas di semester terpilih) -->
+    <div
+      v-if="refundTotal > 0"
+      class="flex items-center gap-3 rounded-2xl border border-teal-200/90 bg-teal-50/90 px-4 py-3 text-xs text-teal-900 shadow-sm"
+      role="status"
+    >
+      <HandCoins class="h-4 w-4 shrink-0 text-teal-600" />
+      <p class="leading-relaxed">
+        <strong>Transparansi Kas:</strong> Terdapat pengembalian dana sisa kas sebesar 
+        <strong>{{ formatCurrency(refundTotal) }}</strong> yang telah dibagikan kembali ke mahasiswa pada semester ini.
       </p>
     </div>
 
@@ -138,12 +159,13 @@ function exportToExcel() {
         </div>
       </div>
 
-      <!-- StatCards with Consolidated Balance & Cash Out -->
+      <!-- StatCards with Consolidated Balance, Cash Out & Refund -->
       <StatCards 
         v-else 
         :summary="summary" 
         :pemasukan-lain-nominal="nonKasTotal"
         :pengeluaran-nominal="pengeluaranTotal"
+        :refund-nominal="refundTotal"
       />
     </section>
 

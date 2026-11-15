@@ -55,6 +55,18 @@ export function usePengeluaran(semesterIdRef, filters = {}) {
     return records.value.reduce((acc, curr) => acc + (Number(curr.nominal) || 0), 0)
   })
 
+  const totalRefund = computed(() => {
+    return records.value
+      .filter((curr) => curr.kategori === 'Pengembalian Kas')
+      .reduce((acc, curr) => acc + (Number(curr.nominal) || 0), 0)
+  })
+
+  const totalBelanjaOperasional = computed(() => {
+    return records.value
+      .filter((curr) => curr.kategori !== 'Pengembalian Kas')
+      .reduce((acc, curr) => acc + (Number(curr.nominal) || 0), 0)
+  })
+
   const createPengeluaran = useMutation({
     mutationFn: async ({ payload, pin }) => {
       const { data } = await api.post('/pengeluaran', payload, {
@@ -89,6 +101,8 @@ export function usePengeluaran(semesterIdRef, filters = {}) {
     pengeluaranQuery,
     records,
     totalPengeluaran,
+    totalRefund,
+    totalBelanjaOperasional,
     createPengeluaran,
     deletePengeluaran,
   }

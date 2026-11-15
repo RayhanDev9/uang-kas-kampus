@@ -19,7 +19,9 @@ import {
   Sparkles,
   Receipt,
   ArrowDownRight,
-  ExternalLink
+  ExternalLink,
+  HandCoins,
+  RotateCcw
 } from 'lucide-vue-next'
 import { getErrorMessage } from '../api/axios'
 import KasFormModal from '../components/KasFormModal.vue'
@@ -33,7 +35,15 @@ import { usePengeluaran } from '../composables/usePengeluaran'
 const { selectedSemesterId, selectedSemester, semesters, createSemester, activateSemester } = useSemester()
 const { kasQuery, createKas, updateKas, deleteKas } = useKas({ semesterId: selectedSemesterId })
 const { records: nonKasRecords, totalNominal: nonKasTotal, createPemasukanLain, deletePemasukanLain, pemasukanLainQuery } = usePemasukanLain(selectedSemesterId)
-const { records: pengeluaranRecords, totalPengeluaran, createPengeluaran, deletePengeluaran, pengeluaranQuery } = usePengeluaran(selectedSemesterId)
+const { 
+  records: pengeluaranRecords, 
+  totalPengeluaran, 
+  totalRefund,
+  totalBelanjaOperasional,
+  createPengeluaran, 
+  deletePengeluaran, 
+  pengeluaranQuery 
+} = usePengeluaran(selectedSemesterId)
 
 const activeTab = ref('kas') // 'kas' | 'non-kas' | 'pengeluaran' | 'semester'
 const pin = ref('')
@@ -692,21 +702,22 @@ function exportExcel() {
         <form class="mt-5 space-y-4" @submit.prevent="submitPengeluaran">
           <div class="grid gap-4 sm:grid-cols-3">
             <label class="block text-xs font-bold uppercase tracking-wider text-slate-600">
-              Keperluan / Judul Belanja
+              Keperluan / Judul Pengeluaran
               <input 
                 v-model="pengeluaranForm.judul" 
                 required 
                 class="form-input mt-1.5" 
-                placeholder="Contoh: Fotokopi Modul Praktikum" 
+                placeholder="Contoh: Pengembalian Sisa Kas Mahasiswa / Beli Spidol" 
               />
             </label>
 
             <label class="block text-xs font-bold uppercase tracking-wider text-slate-600">
-              Kategori Belanja
-              <select v-model="pengeluaranForm.kategori" required class="form-input mt-1.5">
-                <option value="Akademik & Materi">Akademik & Materi</option>
+              Kategori Pengeluaran
+              <select v-model="pengeluaranForm.kategori" required class="form-input mt-1.5 font-semibold">
+                <option value="Pengembalian Kas">Pengembalian Kas (Refund)</option>
                 <option value="Perlengkapan Kelas">Perlengkapan Kelas</option>
                 <option value="Acara & Konsumsi">Acara & Konsumsi</option>
+                <option value="Akademik & Materi">Akademik & Materi</option>
                 <option value="Sosial & Santunan">Sosial & Santunan</option>
                 <option value="Lainnya">Lainnya</option>
               </select>
@@ -723,6 +734,17 @@ function exportExcel() {
                 placeholder="75000" 
               />
             </label>
+          </div>
+
+          <!-- Refund Category Notice -->
+          <div 
+            v-if="pengeluaranForm.kategori === 'Pengembalian Kas'" 
+            class="rounded-2xl border border-teal-200 bg-teal-50/90 p-3.5 text-xs text-teal-900 flex items-start gap-2.5 transition-all"
+          >
+            <HandCoins class="h-4 w-4 shrink-0 text-teal-600 mt-0.5" />
+            <p class="leading-relaxed">
+              <strong>Kategori Pengembalian Kas (Refund):</strong> Opsi ini digunakan untuk mendokumentasikan pengembalian sisa saldo kas kepada mahasiswa saat semester berakhir. Pengeluaran ini akan diberi label khusus dan tidak dihitung sebagai pembelanjaan operasional kelas.
+            </p>
           </div>
 
           <div class="grid gap-4 sm:grid-cols-3">
@@ -786,9 +808,18 @@ function exportExcel() {
             <h4 class="font-extrabold text-slate-900 text-base">Daftar Pengeluaran & Belanja Kelas</h4>
             <p class="text-xs text-slate-500">Semester: {{ selectedSemester?.nama }}</p>
           </div>
-          <span class="rounded-2xl bg-rose-50 px-3.5 py-1.5 text-xs font-black text-rose-800">
-            Total Belanja: {{ formatCurrency(totalPengeluaran) }}
-          </span>
+          <div class="flex flex-wrap items-center gap-2">
+            <span 
+              v-if="totalRefund > 0" 
+              class="rounded-2xl bg-teal-50 border border-teal-200/80 px-3 py-1.5 text-xs font-bold text-teal-800 inline-flex items-center gap-1.5"
+            >
+              <HandCoins class="h-3.5 w-3.5 text-teal-600" />
+              <span>Refund: {{ formatCurrency(totalRefund) }}</span>
+            </span>
+            <span class="rounded-2xl bg-rose-50 px-3.5 py-1.5 text-xs font-black text-rose-800">
+              Total Pengeluaran: {{ formatCurrency(totalPengeluaran) }}
+            </span>
+          </div>
         </div>
 
         <div v-if="pengeluaranRecords.length === 0" class="py-12 text-center text-xs text-slate-500">
@@ -801,7 +832,7 @@ function exportExcel() {
             <thead class="bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
               <tr>
                 <th scope="col" class="py-3 px-3 w-12 text-center">No.</th>
-                <th scope="col" class="py-3 px-4">Keperluan Belanja</th>
+                <th scope="col" class="py-3 px-4">Keperluan Belanja / Pengeluaran</th>
                 <th scope="col" class="py-3 px-3">Kategori</th>
                 <th scope="col" class="py-3 px-3">Tanggal</th>
                 <th scope="col" class="py-3 px-4">Penanggung Jawab</th>
@@ -826,7 +857,13 @@ function exportExcel() {
                   </p>
                 </td>
                 <td class="py-3.5 px-3">
-                  <span class="inline-block rounded-md px-2 py-0.5 text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200/60">
+                  <span 
+                    class="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold border"
+                    :class="item.kategori === 'Pengembalian Kas' 
+                      ? 'bg-teal-50 text-teal-800 border-teal-200/90' 
+                      : 'bg-rose-50 text-rose-700 border-rose-200/60'"
+                  >
+                    <HandCoins v-if="item.kategori === 'Pengembalian Kas'" class="h-3 w-3 text-teal-600" />
                     {{ item.kategori }}
                   </span>
                 </td>
@@ -836,7 +873,10 @@ function exportExcel() {
                 <td class="py-3.5 px-4 font-medium text-slate-700">
                   {{ item.penanggungJawab }}
                 </td>
-                <td class="py-3.5 px-4 text-right font-mono font-bold text-rose-600">
+                <td 
+                  class="py-3.5 px-4 text-right font-mono font-bold"
+                  :class="item.kategori === 'Pengembalian Kas' ? 'text-teal-700' : 'text-rose-600'"
+                >
                   - {{ formatCurrency(item.nominal) }}
                 </td>
                 <td class="py-3.5 px-3 text-center">
@@ -879,11 +919,20 @@ function exportExcel() {
                 <span class="grid h-6 w-6 place-items-center rounded-lg bg-slate-200/80 font-mono text-[10px] font-bold text-slate-600">
                   #{{ idx + 1 }}
                 </span>
-                <span class="rounded px-2 py-0.5 text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200/60">
+                <span 
+                  class="rounded px-2 py-0.5 text-[10px] font-bold border inline-flex items-center gap-1"
+                  :class="item.kategori === 'Pengembalian Kas' 
+                    ? 'bg-teal-50 text-teal-800 border-teal-200/90' 
+                    : 'bg-rose-50 text-rose-700 border-rose-200/60'"
+                >
+                  <HandCoins v-if="item.kategori === 'Pengembalian Kas'" class="h-3 w-3 text-teal-600" />
                   {{ item.kategori }}
                 </span>
               </div>
-              <span class="font-mono font-bold text-rose-600 text-sm">
+              <span 
+                class="font-mono font-bold text-sm"
+                :class="item.kategori === 'Pengembalian Kas' ? 'text-teal-700' : 'text-rose-600'"
+              >
                 - {{ formatCurrency(item.nominal) }}
               </span>
             </div>

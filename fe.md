@@ -1,6 +1,6 @@
 # 💻 Frontend UI/UX Architecture & Rules (`fe.md`)
 
-Dokumen spesifikasi teknis antarmuka Vue 3, TanStack Query, dan Tailwind CSS untuk aplikasi **KasKita**, mencakup pengelolaan state multi-semester, pemasukan non-kas, **pengeluaran kas (cash out / belanja kelas)**, riwayat transaksi, dan modul import/export Excel.
+Dokumen spesifikasi teknis antarmuka Vue 3, TanStack Query, dan Tailwind CSS untuk aplikasi **KasKita**, mencakup pengelolaan state multi-semester, pemasukan non-kas, **pengeluaran kas kelas (termasuk modul Pengembalian Kas / Refund - Opsi 1)**, riwayat transaksi, dan modul import/export Excel.
 
 ---
 
@@ -9,18 +9,18 @@ Dokumen spesifikasi teknis antarmuka Vue 3, TanStack Query, dan Tailwind CSS unt
 ```text
 src/
 ├── composables/
-│   ├── useKas.js             (Query & Mutation kas, diperbarui dengan parameter semesterId & importKas)
+│   ├── useKas.js             (Query & Mutation kas mahasiswa, summary saldo & rincian refund)
 │   ├── useSemester.js        (Global state semester aktif, list semester, & switch semester)
 │   ├── usePemasukanLain.js   (Query & Mutation pemasukan non-kas, saldo sisa, sponsor)
-│   ├── usePengeluaran.js     (BARU: Query & Mutation belanja kelas / penarikan kas)
+│   ├── usePengeluaran.js     (Query & Mutation belanja kelas & pengembalian kas / refund)
 │   └── useHistory.js         (Query timeline log audit riwayat pembayaran & pengeluaran)
 ├── components/
-│   ├── Navbar.vue            (Disisipkan SemesterSwitcher & tombol pemicu HistoryDrawer)
+│   ├── Navbar.vue            (SemesterSwitcher & tombol pemicu HistoryDrawer)
 │   ├── SemesterSwitcher.vue  (Dropdown pemilih semester aktif/arsip)
-│   ├── StatCards.vue         (Saldo Bersih Kas + Total Pemasukan + Total Pengeluaran)
-│   ├── KasTable.vue          (Dual view desktop table dengan No. & mobile cards)
+│   ├── StatCards.vue         (Saldo Bersih Kas + Total Pemasukan + Total Pengeluaran & Refund)
+│   ├── KasTable.vue          (Dual view desktop table dengan No. urut & mobile cards)
 │   ├── KasFormModal.vue      (Modal input data kas mahasiswa)
-│   ├── HistoryDrawer.vue     (Slide-over drawer timeline audit mutasi masuk & keluar)
+│   ├── HistoryDrawer.vue     (Slide-over drawer timeline audit mutasi masuk, belanja & refund)
 │   └── KasImportModal.vue    (Modal drag-and-drop upload .xlsx/.csv & preview baris)
 └── views/
     ├── DashboardView.vue     (Integrasi switcher semester, banner arsip, tombol export & history)
@@ -30,67 +30,80 @@ src/
 
 ---
 
-## 2. Composable Pengeluaran (`src/composables/usePengeluaran.js`) — [BARU]
+## 2. Composable Pengeluaran (`src/composables/usePengeluaran.js`)
 
-Mengelola pemanggilan API untuk pencatatan uang keluar:
-* `pengeluaranQuery({ semesterId, search, kategori })`: Mengambil daftar belanja kelas dari `GET /api/pengeluaran`.
+Mengelola pemanggilan API untuk pencatatan uang keluar (belanja operasional maupun pengembalian kas):
+* `pengeluaranQuery({ semesterId, search, kategori })`: Mengambil daftar pengeluaran dari `GET /api/pengeluaran`.
 * `totalPengeluaran`: Nilai komputasi $\sum \text{nominal pengeluaran}$ pada semester aktif.
 * `createPengeluaran({ payload, pin })`: Mutasi `POST /api/pengeluaran` dengan header `x-admin-pin`.
 * `deletePengeluaran({ id, pin })`: Mutasi `DELETE /api/pengeluaran/:id` dengan header `x-admin-pin`.
-* **Invalidasi Cache**: Saat pengeluaran ditambah atau dihapus, otomatis perbarui query `['pengeluaran']`, `['kas']`, dan `['history']`.
+* **Invalidasi Reaktif**: Saat pengeluaran atau refund dicatat/dihapus, query `['pengeluaran']`, `['kas']`, dan `['history']` otomatis di-refetch seketika.
 
 ---
 
-## 3. Spesifikasi UI Fitur Pengeluaran (Cash Out)
+## 3. Spesifikasi UI Fitur Pengeluaran & Pengembalian Kas (Opsi 1)
 
 ### A. Kartu Ringkasan Saldo Kas (`StatCards.vue`)
-Diperbarui dengan kartu metrik uang keluar yang jelas dan transparan:
 
-1. **Kartu 1 (Hero Gradient - Saldo Kas Riil / Bersih Saat Ini)**:
-   - Menampilkan uang kas yang benar-benar masih ada di tangan bendahara:
-     $$\text{Saldo Kas Bersih} = (\text{Kas Mahasiswa Lunas} + \text{Pemasukan Lain}) - \text{Total Pengeluaran}$$
-   - Tooltip rincian: "Pemasukan: Rp X — Pengeluaran: Rp Y".
-2. **Kartu 2 (Akumulasi Pemasukan)**:
-   - Total seluruh dana yang pernah masuk (Iuran Mahasiswa + Sisa Semester Lalu/Sponsor).
-   - Indikator persentase kepatuhan bayar mahasiswa.
-3. **Kartu 3 (Total Pengeluaran / Belanja Kas)**:
-   - Ditandai dengan warna aksen Rose/Amber yang elegan dan ikon `ArrowDownRight` atau `Receipt`.
-   - Menampilkan total uang kas yang telah dibelanjakan.
-   - Badge kategori belanja terbesar (misal: `"Akademik & Materi: Rp 120.000"`).
+Menampilkan 3 kartu metrik utama yang transparan dan mencerminkan kas riil:
 
----
+1. **Kartu 1 (Hero Gradient Emerald - Saldo Bersih Kas Riil)**:
+   - Menampilkan uang kas fisik yang benar-benar tersisa di bendahara:
+     $$\text{Saldo Kas Bersih} = \text{Total Pemasukan} - (\text{Belanja Operasional} + \text{Uang Dikembalikan})$$
+   - **Efek Realistis di UI**:
+     - Pada **Semester Ganjil 2025/2026**: Menampilkan **Rp 0** (karena sisa dana 100% sudah dikembalikan ke mahasiswa).
+     - Pada **Semester Genap 2025/2026**: Menampilkan **Rp 90.000** (sisa uang nyata yang dialihkan ke Semester 3).
+     - Pada **Semester Ganjil 2026/2027 (Aktif)**: Menampilkan **Rp 149.000** (kas berjalan saat ini).
 
-### B. Tab Pengeluaran Kas di Ruang Bendahara (`AdminView.vue`)
-Menambahkan Tab baru: **"Pengeluaran (Belanja Kelas)"**:
+2. **Kartu 2 (Total Pemasukan)**:
+   - Menampilkan total dana masuk (Iuran Mahasiswa + Sisa Semester Lalu/Pemasukan Lain).
+   - Menampilkan jumlah mahasiswa lunas dan progress persentase target kas.
 
-1. **Formulir Penarikan / Pengeluaran Kas**:
-   - **Judul Keperluan**: Input teks (contoh: *"Fotokopi Modul Praktikum"*, *"Beli Spidol & Kabel HDMI"*).
-   - **Kategori**: Dropdown (*Akademik & Materi*, *Perlengkapan Kelas*, *Acara & Konsumsi*, *Sosial & Santunan*, *Lainnya*).
-   - **Nominal (Rp)**: Validasi angka $\ge 1$. Tampilkan peringatan jika nominal melebihi sisa saldo kas yang ada.
-   - **Tanggal Pengeluaran**: Date picker (default hari ini).
-   - **Penanggung Jawab / Penerima Dana**: Input teks (contoh: *"Budi Santoso - Sie Perlengkapan"*).
-   - **Keterangan / Catatan**: Detail keperluan belanja.
-   - **Upload / URL Bukti Nota (Opsional)**: Tautan atau bukti foto nota pembelian.
-2. **Tabel Daftar Belanja Kas**:
-   - Kolom: `No`, `Keperluan / Judul`, `Kategori`, `Tanggal`, `Penanggung Jawab`, `Nominal (Rp)`, `Aksi (Hapus)`.
-   - Total rekapitulasi belanja semester ini di bagian header tabel.
+3. **Kartu 3 (Total Pengeluaran & Rincian Pengembalian)**:
+   - Menampilkan total seluruh dana kas yang telah keluar.
+   - **Sub-info Transparan**:
+     - Menampilkan rincian: *"Belanja: Rp X | Dikembalikan: Rp Y"*.
+     - Jika ada pengembalian kas (refund), tampilkan badge info halus bernuansa biru/teal:
+       `"Rp 470.000 dikembalikan ke mahasiswa"`.
 
 ---
 
-### C. Drawer Timeline Riwayat Kas (`HistoryDrawer.vue`)
-- Setiap pencatatan pengeluaran baru akan muncul di timeline dengan:
-  - Ikon **`ArrowDownRight` / `Receipt`** berlatar merah halus (`bg-rose-50 text-rose-700`).
-  - Label: `"Pengeluaran Kas"`.
-  - Judul: `"Fotokopi Modul Praktikum"` oleh *"Budi Santoso"*.
-  - Nominal berwarna merah: `"- Rp 75.000"`.
-  - Waktu pencatatan relatif (*"2 jam yang lalu"*).
+### B. Tab Pengeluaran di Ruang Bendahara (`AdminView.vue`)
+
+Pada Tab **"Pengeluaran (Belanja Kelas)"**, bendahara dapat mencatat belanja operasional maupun pengembalian kas sisa semester:
+
+1. **Formulir Pengeluaran**:
+   - **Judul Keperluan**: Input teks (contoh: *"Pengembalian Sisa Kas Mahasiswa (Semester Selesai)"*, *"Beli Air Minum Dosen"*).
+   - **Kategori**: Dropdown pilihan:
+     1. `Pengembalian Kas` *(Khusus untuk pembagian sisa kas kembali ke mahasiswa)*
+     2. `Perlengkapan Kelas`
+     3. `Acara & Konsumsi`
+     4. `Akademik & Materi`
+     5. `Sosial & Santunan`
+     6. `Lainnya`
+   - **Nominal (Rp)**: Validasi angka minimal Rp 1. Tampilkan peringatan jika melebihi saldo kas yang ada.
+   - **Tanggal**: Date picker.
+   - **Penanggung Jawab**: Nama bendahara atau perwakilan kelas.
+   - **Keterangan**: Rincian pembagian (misal: *"Dibagikan kepada 26 mahasiswa yang melunasi iuran"*).
+
+2. **Tabel Pengeluaran**:
+   - Baris dengan kategori `Pengembalian Kas` diberi badge khusus berwarna Cyan/Teal agar terlihat jelas dan berbeda dengan belanja peralatan (Rose/Amber).
+
+---
+
+### C. Drawer Riwayat Audit Transaksi (`HistoryDrawer.vue`)
+
+- Setiap pengeluaran refund ditampilkan di timeline:
+  - Ikon: **`HandCoins`** atau **`RotateCcw`** dengan latar `bg-teal-50 text-teal-700`.
+  - Judul: `"Pengembalian Sisa Kas ke Mahasiswa"`.
+  - Nominal: `"- Rp 470.000"`.
+  - Keterangan audit: Dibuat oleh Bendahara.
 
 ---
 
 ## 4. Aturan Pengalaman Pengguna (UX Rules)
 
-1. **Peringatan Kas Tidak Cukup (Deficit Warning)**:
-   Jika bendahara menginput nominal belanja yang melebihi saldo kas yang tersedia, tampilkan pesan peringatan di form:
-   > ⚠️ *Peringatan: Nominal belanja melebihi sisa saldo kas yang ada saat ini (Rp X).*
-2. **Konfirmasi Hapus Pengeluaran**:
-   Menghapus catatan belanja wajib melalui Modal Konfirmasi Kustom dan mengembalikan saldo kas secara reaktif seketika.
+1. **Pencegahan Defisit Kas**:
+   Formulir pengeluaran akan menolak nominal yang melebihi saldo kas riil yang tersedia saat itu.
+2. **Keterangan Transparansi untuk Mahasiswa**:
+   Di dasbor publik (`DashboardView.vue`), mahasiswa dapat melihat dengan jelas bahwa saldo kas yang berkurang bukan karena boros, melainkan karena telah dikembalikan ke rekening/dompet mahasiswa di akhir semester.

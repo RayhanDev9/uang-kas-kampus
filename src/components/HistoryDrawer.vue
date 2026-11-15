@@ -12,7 +12,8 @@ import {
   PlusCircle, 
   Edit3,
   ArrowDownRight,
-  RotateCcw
+  RotateCcw,
+  HandCoins
 } from 'lucide-vue-next'
 import { useHistory } from '../composables/useHistory'
 import { useSemester } from '../composables/useSemester'
@@ -60,7 +61,32 @@ function formatRelativeTime(dateString) {
   }).format(date)
 }
 
-function getActionInfo(action) {
+function getActionInfo(item) {
+  const action = typeof item === 'string' ? item : item?.aksi
+  const isRefund = 
+    typeof item === 'object' && (
+      item?.dataSnapshot?.kategori === 'Pengembalian Kas' ||
+      (item?.keterangan && (item.keterangan.includes('Pengembalian Kas') || item.keterangan.toLowerCase().includes('pengembalian sisa') || item.keterangan.toLowerCase().includes('pengembalian kas')))
+    )
+
+  if (action === 'EXPENSE_CREATE' && isRefund) {
+    return {
+      label: 'Pengembalian Kas',
+      icon: HandCoins,
+      bg: 'bg-teal-50 text-teal-700 border-teal-200',
+      isRefund: true,
+    }
+  }
+
+  if (action === 'EXPENSE_DELETE' && isRefund) {
+    return {
+      label: 'Batal Refund',
+      icon: RotateCcw,
+      bg: 'bg-amber-50 text-amber-700 border-amber-200',
+      isRefund: true,
+    }
+  }
+
   switch (action) {
     case 'CREATE':
       return {
@@ -209,7 +235,7 @@ function getActionInfo(action) {
             </div>
             <p class="font-bold text-slate-800 text-sm">Belum ada riwayat tercatat</p>
             <p class="text-xs text-slate-500 mt-1 max-w-xs">
-              Semua aktivitas pembayaran mahasiswa, belanja kelas, dan mutasi kas akan muncul di timeline ini secara otomatis.
+              Semua aktivitas pembayaran mahasiswa, belanja kelas, pengembalian kas, dan mutasi kas akan muncul di timeline ini secara otomatis.
             </p>
           </div>
 
@@ -223,9 +249,9 @@ function getActionInfo(action) {
               <!-- Icon Indicator -->
               <div
                 class="relative z-10 grid h-8 w-8 shrink-0 place-items-center rounded-xl border shadow-sm"
-                :class="getActionInfo(item.aksi).bg"
+                :class="getActionInfo(item).bg"
               >
-                <component :is="getActionInfo(item.aksi).icon" class="h-4 w-4" />
+                <component :is="getActionInfo(item).icon" class="h-4 w-4" />
               </div>
 
               <!-- Content Card -->
@@ -233,10 +259,12 @@ function getActionInfo(action) {
                 <div class="flex items-start justify-between gap-2">
                   <div>
                     <span 
-                      class="inline-block rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider"
-                      :class="item.aksi === 'EXPENSE_CREATE' ? 'bg-rose-100 text-rose-800' : 'bg-slate-100 text-slate-600'"
+                      class="inline-block rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider border"
+                      :class="getActionInfo(item).isRefund 
+                        ? 'bg-teal-100 text-teal-800 border-teal-200' 
+                        : (item.aksi === 'EXPENSE_CREATE' ? 'bg-rose-100 text-rose-800 border-rose-200' : 'bg-slate-100 text-slate-600 border-slate-200')"
                     >
-                      {{ getActionInfo(item.aksi).label }}
+                      {{ getActionInfo(item).label }}
                     </span>
                     <p class="font-bold text-slate-900 text-xs mt-1">
                       {{ item.nama }}
@@ -251,7 +279,9 @@ function getActionInfo(action) {
                 <div 
                   v-if="item.nominal" 
                   class="mt-2 text-xs font-mono font-bold"
-                  :class="item.aksi === 'EXPENSE_CREATE' ? 'text-rose-600' : 'text-slate-800'"
+                  :class="getActionInfo(item).isRefund 
+                    ? 'text-teal-700' 
+                    : (item.aksi === 'EXPENSE_CREATE' ? 'text-rose-600' : 'text-slate-800')"
                 >
                   <span v-if="item.aksi === 'EXPENSE_CREATE'">- </span>
                   {{ formatCurrency(item.nominal) }}

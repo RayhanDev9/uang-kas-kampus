@@ -8,7 +8,8 @@ import {
   Sparkles, 
   Layers,
   Receipt,
-  ArrowDownRight
+  ArrowDownRight,
+  HandCoins
 } from 'lucide-vue-next'
 
 const props = defineProps({
@@ -21,6 +22,10 @@ const props = defineProps({
     default: 0,
   },
   pengeluaranNominal: {
+    type: Number,
+    default: 0,
+  },
+  refundNominal: {
     type: Number,
     default: 0,
   },
@@ -58,6 +63,11 @@ const totalPengeluaran = computed(() => {
   return Number(props.pengeluaranNominal) || 0
 })
 
+const totalRefund = computed(() => Number(props.refundNominal) || 0)
+const totalBelanjaOperasional = computed(() => {
+  return Math.max(0, totalPengeluaran.value - totalRefund.value)
+})
+
 const saldoBersih = computed(() => {
   if (props.summary.saldoBersih !== undefined && props.summary.saldoBersih !== null) {
     return Number(props.summary.saldoBersih)
@@ -79,7 +89,7 @@ const saldoBersih = computed(() => {
           <div class="flex items-center justify-between">
             <span class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-emerald-200">
               <Sparkles class="h-3.5 w-3.5 text-emerald-300" />
-              Saldo Bersih Kas
+              Saldo Bersih Kas Riil
             </span>
             <div class="grid h-10 w-10 place-items-center rounded-2xl bg-white/10 backdrop-blur-md transition-transform duration-300 group-hover:rotate-12 group-hover:scale-110">
               <TrendingUp class="h-5 w-5 text-emerald-100" />
@@ -91,7 +101,12 @@ const saldoBersih = computed(() => {
               {{ formatCurrency(saldoBersih) }}
             </p>
             <div class="mt-3 flex items-center justify-between text-xs text-emerald-100/90 border-t border-white/10 pt-3">
-              <span class="truncate pr-2" :title="`Masuk: ${formatCurrency(totalPemasukan)} | Keluar: ${formatCurrency(totalPengeluaran)}`">
+              <span 
+                class="truncate pr-2" 
+                :title="totalRefund > 0 
+                  ? `Masuk: ${formatCurrency(totalPemasukan)} | Belanja: ${formatCurrency(totalBelanjaOperasional)} | Refund: ${formatCurrency(totalRefund)}` 
+                  : `Masuk: ${formatCurrency(totalPemasukan)} | Keluar: ${formatCurrency(totalPengeluaran)}`"
+              >
                 Masuk: {{ formatCurrency(totalPemasukan) }}
               </span>
               <span class="inline-flex items-center gap-1 font-semibold text-emerald-200 shrink-0">
@@ -138,7 +153,7 @@ const saldoBersih = computed(() => {
         </div>
       </article>
 
-      <!-- Card 3: Total Pengeluaran (Cash Out / Belanja Kelas) -->
+      <!-- Card 3: Total Pengeluaran (Cash Out & Pengembalian Kas) -->
       <article class="group min-w-0 rounded-3xl border border-slate-200/80 bg-white p-6 shadow-card transition-all duration-300 hover:-translate-y-1 hover:border-rose-300/80 hover:shadow-card-hover">
         <div class="flex items-center justify-between">
           <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Total Pengeluaran</span>
@@ -152,13 +167,35 @@ const saldoBersih = computed(() => {
             <p class="text-2xl font-black tracking-tight text-rose-600 lg:text-3xl">
               {{ formatCurrency(totalPengeluaran) }}
             </p>
-            <span class="text-xs font-bold text-rose-700 bg-rose-50 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
+            <span 
+              v-if="totalRefund > 0"
+              class="text-xs font-bold text-teal-800 bg-teal-50 border border-teal-200/80 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1"
+            >
+              <HandCoins class="h-3 w-3" />
+              Ada Refund
+            </span>
+            <span 
+              v-else
+              class="text-xs font-bold text-rose-700 bg-rose-50 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1"
+            >
               <ArrowDownRight class="h-3 w-3" />
               Cash Out
             </span>
           </div>
 
-          <div class="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-slate-500">
+          <!-- Sub-info: Rincian belanja vs refund -->
+          <div v-if="totalRefund > 0" class="mt-3.5 space-y-2 border-t border-slate-100 pt-3">
+            <div class="flex items-center justify-between text-xs text-slate-500 font-medium">
+              <span>Belanja: {{ formatCurrency(totalBelanjaOperasional) }}</span>
+              <span class="font-bold text-teal-700">Dikembalikan: {{ formatCurrency(totalRefund) }}</span>
+            </div>
+            <div class="rounded-xl bg-teal-50/80 border border-teal-200/70 px-2.5 py-1.5 text-[11px] text-teal-800 font-medium flex items-center gap-1.5">
+              <HandCoins class="h-3.5 w-3.5 shrink-0 text-teal-600" />
+              <span>{{ formatCurrency(totalRefund) }} dikembalikan ke mahasiswa</span>
+            </div>
+          </div>
+
+          <div v-else class="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-slate-500">
             <span>Belanja & keperluan kelas</span>
             <span class="inline-flex items-center gap-1 font-bold text-rose-600">
               <Layers class="h-3 w-3" />
