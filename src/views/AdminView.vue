@@ -1,5 +1,5 @@
 <script setup>
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { 
   Plus, 
   KeyRound, 
@@ -21,19 +21,33 @@ import {
   ArrowDownRight,
   ExternalLink,
   HandCoins,
-  RotateCcw
+  RotateCcw,
+  List,
+  TableProperties
 } from 'lucide-vue-next'
 import { getErrorMessage } from '../api/axios'
 import KasFormModal from '../components/KasFormModal.vue'
 import KasTable from '../components/KasTable.vue'
+import KasMatrixTable from '../components/KasMatrixTable.vue'
+import PemasukanLainTable from '../components/PemasukanLainTable.vue'
 import KasImportModal from '../components/KasImportModal.vue'
 import { useKas } from '../composables/useKas'
+import { useKasMatrix } from '../composables/useKasMatrix'
 import { useSemester } from '../composables/useSemester'
 import { usePemasukanLain } from '../composables/usePemasukanLain'
 import { usePengeluaran } from '../composables/usePengeluaran'
 
 const { selectedSemesterId, selectedSemester, semesters, createSemester, activateSemester } = useSemester()
 const { kasQuery, createKas, updateKas, deleteKas } = useKas({ semesterId: selectedSemesterId })
+const { 
+  daftarPertemuan, 
+  rows: matrixRows, 
+  totalPerMinggu, 
+  grandTotalKas, 
+  semesterInfo: matrixSemesterInfo, 
+  isLoading: matrixLoading,
+  togglePertemuan 
+} = useKasMatrix(selectedSemesterId)
 const { records: nonKasRecords, totalNominal: nonKasTotal, createPemasukanLain, deletePemasukanLain, pemasukanLainQuery } = usePemasukanLain(selectedSemesterId)
 const { 
   records: pengeluaranRecords, 
@@ -46,6 +60,7 @@ const {
 } = usePengeluaran(selectedSemesterId)
 
 const activeTab = ref('kas') // 'kas' | 'non-kas' | 'pengeluaran' | 'semester'
+const adminViewMode = ref('matriks')
 const pin = ref('')
 const modalOpen = ref(false)
 const importModalOpen = ref(false)
@@ -53,6 +68,38 @@ const editingRecord = ref(null)
 const recordToDelete = ref(null)
 const nonKasToDelete = ref(null)
 const pengeluaranToDelete = ref(null)
+
+// Otomatis atur mode tampilan sesuai tipe semester
+watch(
+  () => selectedSemester.value?.tipeIuran,
+  (tipe) => {
+    adminViewMode.value = tipe === 'MINGGUAN' ? 'matriks' : 'ringkas'
+  },
+  { immediate: true }
+)
+
+async function handleMatrixCellToggle({ kasId, pertemuanKe, bayar, nominal, callback }) {
+  if (!pin.value || !pin.value.trim()) {
+    showToast('error', 'Masukkan PIN bendahara di atas terlebih dahulu untuk mengubah absensi.')
+    if (callback) callback()
+    return
+  }
+
+  try {
+    await togglePertemuan.mutateAsync({
+      kasId,
+      pertemuanKe,
+      bayar,
+      nominal,
+      pin: pin.value,
+    })
+    showToast('success', `Absensi Pertemuan ${pertemuanKe} berhasil diperbarui.`)
+  } catch (err) {
+    showToast('error', getErrorMessage(err))
+  } finally {
+    if (callback) callback()
+  }
+}
 
 // Non-Kas Form state
 const nonKasForm = reactive({
@@ -480,22 +527,56 @@ function exportExcel() {
 
     <!-- TAB 1: Iuran Mahasiswa -->
     <section v-if="activeTab === 'kas'" class="space-y-4">
-      <div class="flex items-end justify-between gap-3">
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Database Kas</p>
           <h2 class="mt-1 text-xl font-black tracking-tight text-slate-900">
             Catatan Kas Mahasiswa &bull; {{ selectedSemester?.nama }}
           </h2>
         </div>
-        <button 
-          type="button" 
-          class="btn-secondary px-3 py-1.5 text-xs inline-flex items-center gap-1.5 font-bold" 
-          :disabled="kasQuery.isFetching.value" 
-          @click="kasQuery.refetch()"
-        >
-          <RefreshCw class="h-3.5 w-3.5" :class="{ 'animate-spin': kasQuery.isFetching.value }" />
-          <span>{{ kasQuery.isFetching.value ? 'Memuat...' : 'Segarkan Data' }}</span>
-        </button>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <!-- Segmented View Mode Toggle (Hanya untuk Semester Mingguan) -->
+          <div 
+            v-if="selectedSemester?.tipeIuran === 'MINGGUAN'" 
+            class="inline-flex rounded-xl border border-slate-200 bg-slate-100/90 p-1 shadow-inner shrink-0" 
+            role="group" 
+            aria-label="Mode tampilan tabel"
+          >
+            <button
+              type="button"
+              class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all duration-150"
+              :class="adminViewMode === 'ringkas' 
+                ? 'bg-white text-slate-900 font-bold shadow-sm' 
+                : 'text-slate-500 hover:text-slate-800'"
+              @click="adminViewMode = 'ringkas'"
+            >
+              <List class="h-3.5 w-3.5" :class="adminViewMode === 'ringkas' ? 'text-emerald-600' : 'text-slate-400'" />
+              <span>Ringkas</span>
+            </button>
+            <button
+              type="button"
+              class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all duration-150"
+              :class="adminViewMode === 'matriks' 
+                ? 'bg-emerald-700 text-white font-bold shadow-sm' 
+                : 'text-slate-500 hover:text-slate-800'"
+              @click="adminViewMode = 'matriks'"
+            >
+              <TableProperties class="h-3.5 w-3.5" :class="adminViewMode === 'matriks' ? 'text-white' : 'text-slate-400'" />
+              <span>Matriks Mingguan</span>
+            </button>
+          </div>
+
+          <button 
+            type="button" 
+            class="btn-secondary px-3 py-1.5 text-xs inline-flex items-center gap-1.5 font-bold" 
+            :disabled="kasQuery.isFetching.value" 
+            @click="kasQuery.refetch()"
+          >
+            <RefreshCw class="h-3.5 w-3.5" :class="{ 'animate-spin': kasQuery.isFetching.value }" />
+            <span>{{ kasQuery.isFetching.value ? 'Memuat...' : 'Segarkan Data' }}</span>
+          </button>
+        </div>
       </div>
 
       <!-- Loading State -->
@@ -520,7 +601,19 @@ function exportExcel() {
         </div>
       </section>
 
-      <!-- Data Table -->
+      <!-- Data Table: Matriks vs Ringkas -->
+      <KasMatrixTable
+        v-else-if="selectedSemester?.tipeIuran === 'MINGGUAN' && adminViewMode === 'matriks'"
+        :daftar-pertemuan="daftarPertemuan"
+        :rows="matrixRows"
+        :total-per-minggu="totalPerMinggu"
+        :grand-total-kas="grandTotalKas"
+        :semester-info="matrixSemesterInfo || selectedSemester"
+        :interactive="true"
+        :pin="pin"
+        @toggle-cell="handleMatrixCellToggle"
+        @need-pin="showToast('error', 'Masukkan PIN bendahara di atas terlebih dahulu untuk mengubah absensi.')"
+      />
       <KasTable
         v-else
         :records="kasQuery.data.value?.data ?? []"
@@ -528,6 +621,16 @@ function exportExcel() {
         @edit="openEditForm"
         @delete="confirmDelete"
       />
+
+      <!-- Pemisahan Dana Non-Iuran (Rangkuman di Tab Kas) -->
+      <div class="mt-8 pt-4 border-t border-slate-200/80">
+        <PemasukanLainTable
+          :records="nonKasRecords"
+          :total-nominal="nonKasTotal"
+          :show-actions="true"
+          @delete="executeDeleteNonKas"
+        />
+      </div>
     </section>
 
     <!-- TAB 2: Pemasukan Non-Kas -->

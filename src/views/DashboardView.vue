@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { 
   Search, 
   X, 
@@ -13,13 +13,18 @@ import {
   History, 
   AlertTriangle,
   FileSpreadsheet,
-  HandCoins
+  HandCoins,
+  List,
+  TableProperties
 } from 'lucide-vue-next'
 import { getErrorMessage } from '../api/axios'
 import KasTable from '../components/KasTable.vue'
+import KasMatrixTable from '../components/KasMatrixTable.vue'
+import PemasukanLainTable from '../components/PemasukanLainTable.vue'
 import StatCards from '../components/StatCards.vue'
 import HistoryDrawer from '../components/HistoryDrawer.vue'
 import { useKas } from '../composables/useKas'
+import { useKasMatrix } from '../composables/useKasMatrix'
 import { useSemester } from '../composables/useSemester'
 import { usePemasukanLain } from '../composables/usePemasukanLain'
 import { usePengeluaran } from '../composables/usePengeluaran'
@@ -27,11 +32,31 @@ import { usePengeluaran } from '../composables/usePengeluaran'
 const search = ref('')
 const status = ref('Semua')
 const historyOpen = ref(false)
+const viewMode = ref('matriks')
 
 const { selectedSemesterId, selectedSemester, isViewingArchived } = useSemester()
 const { kasQuery: publicKasQuery } = useKas({ search, status, semesterId: selectedSemesterId })
-const { totalNominal: nonKasTotal } = usePemasukanLain(selectedSemesterId)
+const { 
+  daftarPertemuan, 
+  rows: matrixRows, 
+  totalPerMinggu, 
+  grandTotalKas, 
+  semesterInfo: matrixSemesterInfo, 
+  isLoading: matrixLoading,
+  isError: matrixError,
+  error: matrixErrorObj
+} = useKasMatrix(selectedSemesterId)
+const { records: nonKasRecords, totalNominal: nonKasTotal } = usePemasukanLain(selectedSemesterId)
 const { totalPengeluaran: pengeluaranTotal, totalRefund: refundTotal } = usePengeluaran(selectedSemesterId)
+
+// Otomatis atur tampilan default: Matriks untuk mingguan, Ringkas untuk semester flat
+watch(
+  () => selectedSemester.value?.tipeIuran,
+  (tipe) => {
+    viewMode.value = tipe === 'MINGGUAN' ? 'matriks' : 'ringkas'
+  },
+  { immediate: true }
+)
 
 const summary = computed(() => publicKasQuery.data.value?.summary ?? {})
 const records = computed(() => publicKasQuery.data.value?.data ?? [])
@@ -180,6 +205,37 @@ function exportToExcel() {
 
         <!-- Filter & Search Controls -->
         <div class="flex w-full min-w-0 flex-col gap-2.5 sm:flex-row sm:items-center lg:w-auto">
+          <!-- Segmented View Mode Toggle (Hanya untuk Semester Mingguan) -->
+          <div 
+            v-if="selectedSemester?.tipeIuran === 'MINGGUAN'" 
+            class="inline-flex rounded-xl border border-slate-200 bg-slate-100/90 p-1 shadow-inner shrink-0" 
+            role="group" 
+            aria-label="Mode tampilan tabel"
+          >
+            <button
+              type="button"
+              class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all duration-150"
+              :class="viewMode === 'ringkas' 
+                ? 'bg-white text-slate-900 font-bold shadow-sm' 
+                : 'text-slate-500 hover:text-slate-800'"
+              @click="viewMode = 'ringkas'"
+            >
+              <List class="h-3.5 w-3.5" :class="viewMode === 'ringkas' ? 'text-emerald-600' : 'text-slate-400'" />
+              <span>Ringkas</span>
+            </button>
+            <button
+              type="button"
+              class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all duration-150"
+              :class="viewMode === 'matriks' 
+                ? 'bg-emerald-700 text-white font-bold shadow-sm' 
+                : 'text-slate-500 hover:text-slate-800'"
+              @click="viewMode = 'matriks'"
+            >
+              <TableProperties class="h-3.5 w-3.5" :class="viewMode === 'matriks' ? 'text-white' : 'text-slate-400'" />
+              <span>Matriks Mingguan</span>
+            </button>
+          </div>
+
           <!-- Filter Pills (Chips) -->
           <div class="inline-flex rounded-xl border border-slate-200 bg-slate-100/80 p-1 shadow-inner" role="group" aria-label="Filter status">
             <button
@@ -235,6 +291,17 @@ function exportToExcel() {
       </div>
 
       <!-- Table / Cards Component -->
+      <KasMatrixTable
+        v-if="selectedSemester?.tipeIuran === 'MINGGUAN' && viewMode === 'matriks'"
+        :daftar-pertemuan="daftarPertemuan"
+        :rows="matrixRows"
+        :total-per-minggu="totalPerMinggu"
+        :grand-total-kas="grandTotalKas"
+        :semester-info="matrixSemesterInfo || selectedSemester"
+        :search-query="search"
+        :status-filter="status"
+        :interactive="false"
+      />
       <KasTable v-else :records="records" />
 
       <!-- Sub-footer Info & Refresh status -->
@@ -248,6 +315,14 @@ function exportToExcel() {
           Memperbarui...
         </span>
       </div>
+    </section>
+
+    <!-- Non-Kas Funds Section (Pemisahan Dana Masuk Non-Iuran) -->
+    <section class="space-y-4 pt-2">
+      <PemasukanLainTable 
+        :records="nonKasRecords" 
+        :total-nominal="nonKasTotal" 
+      />
     </section>
 
     <!-- History Drawer -->
