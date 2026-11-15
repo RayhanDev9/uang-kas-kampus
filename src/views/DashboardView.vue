@@ -17,9 +17,10 @@ import {
   List,
   TableProperties,
   MessageSquare,
-  BarChart3
+  BarChart3,
+  Loader2
 } from 'lucide-vue-next'
-import { getErrorMessage } from '../api/axios'
+import api, { getErrorMessage } from '../api/axios'
 import KasTable from '../components/KasTable.vue'
 import KasMatrixTable from '../components/KasMatrixTable.vue'
 import PemasukanLainTable from '../components/PemasukanLainTable.vue'
@@ -78,12 +79,41 @@ const filterOptions = [
   { value: 'Belum Lunas', label: 'Belum Lunas', icon: Clock },
 ]
 
-function exportToExcel() {
-  const apiBase = import.meta.env.VITE_API_BASE_URL || '/api'
-  const semParam = selectedSemesterId.value && selectedSemesterId.value !== 'default-active' 
-    ? `&semesterId=${encodeURIComponent(selectedSemesterId.value)}` 
-    : ''
-  window.open(`${apiBase}/kas/export?format=xlsx${semParam}`, '_blank')
+const isExporting = ref(false)
+
+async function exportToExcel() {
+  if (isExporting.value) return
+  isExporting.value = true
+  try {
+    const semParam = selectedSemesterId.value && selectedSemesterId.value !== 'default-active' 
+      ? selectedSemesterId.value 
+      : undefined
+
+    const res = await api.get('/kas/export', {
+      params: { format: 'xlsx', semesterId: semParam },
+      responseType: 'blob',
+    })
+
+    const blob = new Blob([res.data], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    })
+    const downloadUrl = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = downloadUrl
+    const dateStr = new Date().toISOString().split('T')[0]
+    const semName = selectedSemester.value?.nama 
+      ? selectedSemester.value.nama.replace(/[^a-zA-Z0-9_-]/g, '_') 
+      : 'Kas'
+    link.download = `Laporan_Kas_${semName}_${dateStr}.xlsx`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(downloadUrl)
+  } catch (err) {
+    console.error('Export Excel failed:', err)
+  } finally {
+    isExporting.value = false
+  }
 }
 </script>
 
@@ -144,11 +174,13 @@ function exportToExcel() {
         <button
           type="button"
           class="btn-secondary text-xs inline-flex items-center gap-2"
+          :disabled="isExporting"
           title="Download laporan Excel kas semester ini"
           @click="exportToExcel"
         >
-          <FileSpreadsheet class="h-4 w-4 text-emerald-700" />
-          <span>Export Excel</span>
+          <Loader2 v-if="isExporting" class="h-4 w-4 text-emerald-700 animate-spin" />
+          <FileSpreadsheet v-else class="h-4 w-4 text-emerald-700" />
+          <span>{{ isExporting ? 'Mengunduh...' : 'Export Excel' }}</span>
         </button>
 
         <RouterLink
