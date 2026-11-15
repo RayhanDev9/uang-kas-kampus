@@ -2,11 +2,13 @@ import { createRouter, createWebHistory } from 'vue-router'
 import AdminView from '../views/AdminView.vue'
 import DashboardView from '../views/DashboardView.vue'
 import InfoView from '../views/InfoView.vue'
+import HistoryView from '../views/HistoryView.vue'
 
 const router = createRouter({
   history: createWebHistory(),
   routes: [
     { path: '/', name: 'dashboard', component: DashboardView },
+    { path: '/riwayat', name: 'history', component: HistoryView },
     {
       path: '/admin',
       name: 'admin',

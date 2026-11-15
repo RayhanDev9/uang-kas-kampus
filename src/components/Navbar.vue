@@ -3,17 +3,16 @@ import { computed, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { Wallet, LayoutDashboard, Info, ShieldCheck, History, Menu, X, LogOut } from 'lucide-vue-next'
 import SemesterSwitcher from './SemesterSwitcher.vue'
-import HistoryDrawer from './HistoryDrawer.vue'
 import { useAuth } from '../composables/useAuth'
 
 const route = useRoute()
 const { isAuthenticated, logout } = useAuth()
 const menuOpen = ref(false)
-const historyOpen = ref(false)
 
 const links = computed(() => {
   const base = [
     { to: '/', label: 'Ringkasan', icon: LayoutDashboard },
+    { to: '/riwayat', label: 'Riwayat Kas', icon: History },
     { to: '/info', label: 'Cara Bayar', icon: Info },
   ]
 
@@ -77,28 +76,17 @@ watch(
             <span>{{ link.label }}</span>
           </RouterLink>
         </nav>
-
-        <!-- Button to open History Drawer -->
-        <button
-          type="button"
-          class="inline-flex items-center gap-1.5 rounded-full border border-slate-200/90 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-sm transition-all hover:bg-slate-50 hover:border-slate-300 active:scale-95"
-          @click="historyOpen = true"
-        >
-          <History class="h-4 w-4 text-emerald-600" />
-          <span>Riwayat</span>
-        </button>
       </div>
 
       <!-- Mobile Action Buttons -->
       <div class="flex items-center gap-1.5 sm:gap-2 shrink-0 md:hidden">
-        <button
-          type="button"
+        <RouterLink
+          to="/riwayat"
           class="grid h-9 w-9 sm:h-10 sm:w-10 place-items-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 active:scale-95 shrink-0"
           title="Buka riwayat mutasi kas"
-          @click="historyOpen = true"
         >
           <History class="h-4 w-4 sm:h-5 sm:w-5 text-emerald-700" />
-        </button>
+        </RouterLink>
 
         <button
           type="button"
@@ -140,15 +128,6 @@ watch(
           </RouterLink>
 
           <button
-            type="button"
-            class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all text-left"
-            @click="menuOpen = false; historyOpen = true"
-          >
-            <History class="h-5 w-5 text-emerald-600" />
-            <span>Riwayat Pembayaran & Kas</span>
-          </button>
-
-          <button
             v-if="isAuthenticated"
             type="button"
             class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-rose-600 hover:bg-rose-50 hover:text-rose-700 transition-all text-left mt-1 border-t border-slate-100"
@@ -160,8 +139,5 @@ watch(
         </nav>
       </div>
     </Transition>
-
-    <!-- History Drawer Instance -->
-    <HistoryDrawer :show="historyOpen" @close="historyOpen = false" />
   </header>
 </template>

@@ -22,7 +22,6 @@ import KasTable from '../components/KasTable.vue'
 import KasMatrixTable from '../components/KasMatrixTable.vue'
 import PemasukanLainTable from '../components/PemasukanLainTable.vue'
 import StatCards from '../components/StatCards.vue'
-import HistoryDrawer from '../components/HistoryDrawer.vue'
 import { useKas } from '../composables/useKas'
 import { useKasMatrix } from '../composables/useKasMatrix'
 import { useSemester } from '../composables/useSemester'
@@ -31,7 +30,6 @@ import { usePengeluaran } from '../composables/usePengeluaran'
 
 const search = ref('')
 const status = ref('Semua')
-const historyOpen = ref(false)
 const viewMode = ref('matriks')
 
 const { selectedSemesterId, selectedSemester, isViewingArchived } = useSemester()
@@ -137,15 +135,14 @@ function exportToExcel() {
           <span>Export Excel</span>
         </button>
 
-        <button
-          type="button"
+        <RouterLink
+          to="/riwayat"
           class="btn-secondary text-xs inline-flex items-center gap-2"
           title="Lihat riwayat mutasi kas"
-          @click="historyOpen = true"
         >
           <History class="h-4 w-4 text-slate-600" />
           <span>Riwayat Kas</span>
-        </button>
+        </RouterLink>
 
         <RouterLink 
           to="/info" 
@@ -324,8 +321,5 @@ function exportToExcel() {
         :total-nominal="nonKasTotal" 
       />
     </section>
-
-    <!-- History Drawer -->
-    <HistoryDrawer :show="historyOpen" @close="historyOpen = false" />
   </div>
 </template>
