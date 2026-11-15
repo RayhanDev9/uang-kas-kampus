@@ -13,8 +13,10 @@ import {
   X,
   User,
   Calendar,
-  ArrowRight
+  ArrowRight,
+  MessageSquare
 } from 'lucide-vue-next'
+import { openStudentReceiptWhatsApp } from '../composables/useWhatsAppReceipt'
 
 const props = defineProps({
   daftarPertemuan: {
@@ -301,18 +303,29 @@ function executeConfirm() {
                 {{ formatCurrency(row.nominal) }}
               </td>
 
-              <!-- Summary: Status Pelunasan -->
+              <!-- Summary: Status Pelunasan & WA Share -->
               <td class="px-3 py-2.5 text-center bg-slate-50/40">
-                <span
-                  class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold"
-                  :class="
-                    row.status === 'Lunas'
-                      ? 'bg-emerald-100 text-emerald-800 ring-1 ring-emerald-600/20'
-                      : 'bg-amber-100 text-amber-900 ring-1 ring-amber-600/20'
-                  "
-                >
-                  {{ row.status || 'Belum Lunas' }}
-                </span>
+                <div class="flex items-center justify-center gap-1.5">
+                  <span
+                    class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold"
+                    :class="
+                      row.status === 'Lunas'
+                        ? 'bg-emerald-100 text-emerald-800 ring-1 ring-emerald-600/20'
+                        : 'bg-amber-100 text-amber-900 ring-1 ring-amber-600/20'
+                    "
+                  >
+                    {{ row.status || 'Belum Lunas' }}
+                  </span>
+                  <button
+                    type="button"
+                    class="p-1 rounded-lg text-emerald-600 hover:bg-emerald-100/80 transition-colors"
+                    title="Kirim Bukti Bayar ke WhatsApp"
+                    aria-label="Kirim Bukti Bayar ke WhatsApp"
+                    @click.stop="openStudentReceiptWhatsApp({ student: row, semester: semesterInfo })"
+                  >
+                    <MessageSquare class="h-3.5 w-3.5 stroke-[2.2]" />
+                  </button>
+                </div>
               </td>
             </tr>
 

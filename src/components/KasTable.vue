@@ -8,7 +8,9 @@ import {
   User,
   CheckCircle2,
   Clock,
+  MessageSquare,
 } from "lucide-vue-next";
+import { openStudentReceiptWhatsApp } from "../composables/useWhatsAppReceipt";
 
 const props = defineProps({
   records: { type: Array, default: () => [] },
@@ -157,27 +159,38 @@ const sortedRecords = computed(() => {
                 {{ formatCurrency(record.nominal) }}
               </td>
 
-              <!-- Status Badge -->
+              <!-- Status Badge & WA Receipt Button -->
               <td class="px-5 py-4">
-                <span
-                  class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold shadow-sm"
-                  :class="
-                    record.status === 'Lunas'
-                      ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20'
-                      : 'bg-amber-50 text-amber-800 ring-1 ring-amber-600/20'
-                  "
-                >
-                  <component
-                    :is="record.status === 'Lunas' ? CheckCircle2 : Clock"
-                    class="h-3.5 w-3.5"
+                <div class="flex items-center gap-2">
+                  <span
+                    class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold shadow-sm"
                     :class="
                       record.status === 'Lunas'
-                        ? 'text-emerald-600'
-                        : 'text-amber-600'
+                        ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20'
+                        : 'bg-amber-50 text-amber-800 ring-1 ring-amber-600/20'
                     "
-                  />
-                  {{ record.status || "Belum Lunas" }}
-                </span>
+                  >
+                    <component
+                      :is="record.status === 'Lunas' ? CheckCircle2 : Clock"
+                      class="h-3.5 w-3.5"
+                      :class="
+                        record.status === 'Lunas'
+                          ? 'text-emerald-600'
+                          : 'text-amber-600'
+                      "
+                    />
+                    {{ record.status || "Belum Lunas" }}
+                  </span>
+                  <button
+                    type="button"
+                    class="p-1 rounded-lg text-emerald-600 hover:bg-emerald-50 border border-transparent hover:border-emerald-200 transition-colors"
+                    title="Kirim Bukti Bayar ke WhatsApp"
+                    aria-label="Kirim Bukti Bayar ke WhatsApp"
+                    @click="openStudentReceiptWhatsApp({ student: record })"
+                  >
+                    <MessageSquare class="h-3.5 w-3.5 stroke-[2.2]" />
+                  </button>
+                </div>
               </td>
 
               <!-- Tanggal Bayar -->
@@ -247,26 +260,37 @@ const sortedRecords = computed(() => {
               </div>
             </div>
 
-            <!-- Status Badge -->
-            <span
-              class="inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold"
-              :class="
-                record.status === 'Lunas'
-                  ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20'
-                  : 'bg-amber-50 text-amber-800 ring-1 ring-amber-600/20'
-              "
-            >
-              <component
-                :is="record.status === 'Lunas' ? CheckCircle2 : Clock"
-                class="h-3 w-3"
+            <!-- Status Badge & WA -->
+            <div class="flex items-center gap-1.5 shrink-0">
+              <span
+                class="inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold"
                 :class="
                   record.status === 'Lunas'
-                    ? 'text-emerald-600'
-                    : 'text-amber-600'
+                    ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20'
+                    : 'bg-amber-50 text-amber-800 ring-1 ring-amber-600/20'
                 "
-              />
-              {{ record.status || "Belum Lunas" }}
-            </span>
+              >
+                <component
+                  :is="record.status === 'Lunas' ? CheckCircle2 : Clock"
+                  class="h-3 w-3"
+                  :class="
+                    record.status === 'Lunas'
+                      ? 'text-emerald-600'
+                      : 'text-amber-600'
+                  "
+                />
+                {{ record.status || "Belum Lunas" }}
+              </span>
+              <button
+                type="button"
+                class="p-1 rounded-lg text-emerald-600 hover:bg-emerald-100/70 transition-colors"
+                title="Kirim Bukti Bayar ke WhatsApp"
+                aria-label="Kirim Bukti Bayar ke WhatsApp"
+                @click="openStudentReceiptWhatsApp({ student: record })"
+              >
+                <MessageSquare class="h-3.5 w-3.5 stroke-[2.2]" />
+              </button>
+            </div>
           </div>
 
           <!-- Detail Metrics -->

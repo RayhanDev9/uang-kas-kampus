@@ -14,7 +14,8 @@ import {
   HandCoins,
   FileText,
   Tag,
-  ShieldCheck
+  ShieldCheck,
+  MessageSquare
 } from 'lucide-vue-next'
 
 const props = defineProps({
@@ -23,6 +24,34 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['close'])
+
+function shareReceiptWA() {
+  if (!props.item) return
+  const item = props.item
+  const nama = item.nama || 'Mahasiswa'
+  const nim = item.nim || '251*********'
+  const nominal = formatCurrency(item.nominal || 0)
+  const status = item.statusBaru || (item.aksi === 'EXPENSE_CREATE' ? 'Pengeluaran' : 'Lunas')
+
+  let text = `🧾 *BUKTI TRANSAKSI KAS KELAS*\n`
+  text += `================================\n`
+  text += `*Nama:* ${nama}\n`
+  if (nim && nim !== '-') {
+    text += `*NIM:* ${nim}\n`
+  }
+  text += `*Nominal:* ${nominal}\n`
+  text += `*Status:* ${status}\n`
+  if (item.keterangan) {
+    text += `*Keterangan:* ${item.keterangan}\n`
+  }
+  if (item.waktu) {
+    text += `*Waktu:* ${formatFullDate(item.waktu)}\n`
+  }
+  text += `\n_Dicatat resmi oleh Sistem Buku Kas Kelas_\n_Terima kasih! 🙌✨_`
+
+  const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`
+  window.open(url, '_blank')
+}
 
 const formatCurrency = (val) =>
   new Intl.NumberFormat('id-ID', {
@@ -229,14 +258,22 @@ const typeInfo = computed(() => {
             </div>
           </div>
 
-          <!-- Bottom Button -->
-          <div class="mt-6 flex justify-end">
+          <!-- Bottom Buttons -->
+          <div class="mt-6 flex flex-col-reverse sm:flex-row items-center justify-between gap-2.5">
             <button
               type="button"
               class="w-full sm:w-auto rounded-xl bg-slate-100 hover:bg-slate-200 px-5 py-2.5 text-xs font-bold text-slate-700 transition-colors"
               @click="emit('close')"
             >
               Tutup Rincian
+            </button>
+            <button
+              type="button"
+              class="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 px-4 py-2.5 text-xs font-bold text-white shadow-sm shadow-emerald-600/20 active:scale-95 transition-all"
+              @click="shareReceiptWA"
+            >
+              <MessageSquare class="w-4 h-4" />
+              <span>Bagikan Bukti ke WA</span>
             </button>
           </div>
         </div>

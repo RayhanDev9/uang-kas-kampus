@@ -15,13 +15,17 @@ import {
   FileSpreadsheet,
   HandCoins,
   List,
-  TableProperties
+  TableProperties,
+  MessageSquare,
+  BarChart3
 } from 'lucide-vue-next'
 import { getErrorMessage } from '../api/axios'
 import KasTable from '../components/KasTable.vue'
 import KasMatrixTable from '../components/KasMatrixTable.vue'
 import PemasukanLainTable from '../components/PemasukanLainTable.vue'
 import StatCards from '../components/StatCards.vue'
+import FinancialCharts from '../components/FinancialCharts.vue'
+import WhatsAppBroadcastModal from '../components/WhatsAppBroadcastModal.vue'
 import { useKas } from '../composables/useKas'
 import { useKasMatrix } from '../composables/useKasMatrix'
 import { useSemester } from '../composables/useSemester'
@@ -31,6 +35,8 @@ import { usePengeluaran } from '../composables/usePengeluaran'
 const search = ref('')
 const status = ref('Semua')
 const viewMode = ref('matriks')
+const showWaModal = ref(false)
+const showCharts = ref(true)
 
 const { selectedSemesterId, selectedSemester, isViewingArchived } = useSemester()
 const { kasQuery: publicKasQuery } = useKas({ search, status, semesterId: selectedSemesterId })
@@ -127,6 +133,16 @@ function exportToExcel() {
       <div class="flex flex-wrap items-center gap-2.5 self-start md:self-auto">
         <button
           type="button"
+          class="btn-secondary text-xs inline-flex items-center gap-2 border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100/80 shadow-sm transition-all"
+          title="Tagih atau broadcast iuran kas mahasiswa via WhatsApp"
+          @click="showWaModal = true"
+        >
+          <MessageSquare class="h-4 w-4 text-emerald-600 stroke-[2.2]" />
+          <span>Tagih Kas WA</span>
+        </button>
+
+        <button
+          type="button"
           class="btn-secondary text-xs inline-flex items-center gap-2"
           title="Download laporan Excel kas semester ini"
           @click="exportToExcel"
@@ -189,6 +205,33 @@ function exportToExcel() {
         :pengeluaran-nominal="pengeluaranTotal"
         :refund-nominal="refundTotal"
       />
+    </section>
+
+    <!-- Collapsible Financial Charts Section -->
+    <section aria-label="Grafik tren keuangan">
+      <div class="flex items-center justify-between mb-3">
+        <button
+          type="button"
+          class="inline-flex items-center gap-2 rounded-xl bg-slate-100 hover:bg-slate-200/80 px-3 py-1.5 text-xs font-bold text-slate-700 transition-colors"
+          @click="showCharts = !showCharts"
+        >
+          <BarChart3 class="h-3.5 w-3.5 text-emerald-600" />
+          <span>{{ showCharts ? 'Sembunyikan Grafik Analitik' : 'Tampilkan Grafik Tren & Kategori Keuangan' }}</span>
+        </button>
+      </div>
+      <Transition
+        enter-active-class="transition duration-200 ease-out"
+        enter-from-class="opacity-0 -translate-y-2"
+        enter-to-class="opacity-100 translate-y-0"
+        leave-active-class="transition duration-150 ease-in"
+        leave-from-class="opacity-100 translate-y-0"
+        leave-to-class="opacity-0 -translate-y-2"
+      >
+        <FinancialCharts
+          v-if="showCharts"
+          :semester-id="selectedSemesterId"
+        />
+      </Transition>
     </section>
 
     <!-- Transactions Section -->
@@ -321,5 +364,13 @@ function exportToExcel() {
         :total-nominal="nonKasTotal" 
       />
     </section>
+
+    <!-- WhatsApp Broadcast Modal -->
+    <WhatsAppBroadcastModal
+      :show="showWaModal"
+      :semester="selectedSemester"
+      :students="matrixRows.length > 0 ? matrixRows : records"
+      @close="showWaModal = false"
+    />
   </div>
 </template>

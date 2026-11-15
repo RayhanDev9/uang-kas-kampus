@@ -24,7 +24,8 @@ import {
   RotateCcw,
   List,
   TableProperties,
-  LogOut
+  LogOut,
+  MessageSquare
 } from 'lucide-vue-next'
 import { getErrorMessage } from '../api/axios'
 import KasFormModal from '../components/KasFormModal.vue'
@@ -32,6 +33,7 @@ import KasTable from '../components/KasTable.vue'
 import KasMatrixTable from '../components/KasMatrixTable.vue'
 import PemasukanLainTable from '../components/PemasukanLainTable.vue'
 import KasImportModal from '../components/KasImportModal.vue'
+import WhatsAppBroadcastModal from '../components/WhatsAppBroadcastModal.vue'
 import { useAuth } from '../composables/useAuth'
 import { useKas } from '../composables/useKas'
 import { useKasMatrix } from '../composables/useKasMatrix'
@@ -68,6 +70,7 @@ const activeTab = ref('kas') // 'kas' | 'non-kas' | 'pengeluaran' | 'semester'
 const adminViewMode = ref('matriks')
 const modalOpen = ref(false)
 const importModalOpen = ref(false)
+const showWaModal = ref(false)
 const editingRecord = ref(null)
 const recordToDelete = ref(null)
 const nonKasToDelete = ref(null)
@@ -413,6 +416,16 @@ function exportExcel() {
 
       <!-- Action Buttons -->
       <div class="flex flex-wrap items-center gap-2.5 self-start">
+        <button
+          type="button"
+          class="btn-secondary text-xs inline-flex items-center gap-2 border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100/80 shadow-sm transition-all"
+          title="Tagih atau broadcast iuran kas mahasiswa via WhatsApp"
+          @click="showWaModal = true"
+        >
+          <MessageSquare class="h-4 w-4 text-emerald-600 stroke-[2.2]" />
+          <span>Tagih Kas WA</span>
+        </button>
+
         <button
           type="button"
           class="btn-secondary text-xs inline-flex items-center gap-2"
@@ -1327,5 +1340,13 @@ function exportExcel() {
         </button>
       </div>
     </Transition>
+
+    <!-- WhatsApp Broadcast Modal -->
+    <WhatsAppBroadcastModal
+      :show="showWaModal"
+      :semester="selectedSemester"
+      :students="matrixRows.length > 0 ? matrixRows : (kasQuery.data.value?.data ?? [])"
+      @close="showWaModal = false"
+    />
   </div>
 </template>
