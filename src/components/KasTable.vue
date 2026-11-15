@@ -329,7 +329,7 @@ const sortedRecords = computed(() => {
           Tidak ada data ditemukan
         </p>
         <p class="mt-1 text-xs text-slate-500 leading-relaxed">
-          Coba sesuaikan kata kunci pencarian nama/NIM atau ubah filter status
+          Coba sesuaikan kata kunci pencarian nama mahasiswa atau ubah filter status
           pembayaran.
         </p>
       </div>

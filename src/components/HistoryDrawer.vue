@@ -216,7 +216,7 @@ function getActionInfo(item) {
               v-model="search"
               type="search"
               class="form-input pl-9 pr-4 py-2 text-xs"
-              placeholder="Cari nama, NIM, atau keterangan..."
+              placeholder="Cari nama mahasiswa atau keterangan..."
             />
           </div>
         </div>

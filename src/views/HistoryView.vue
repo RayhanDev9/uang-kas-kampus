@@ -349,7 +349,7 @@ watch(
           <input
             v-model="search"
             type="search"
-            placeholder="Cari nama mahasiswa, NIM (251******), atau keperluan belanja..."
+            placeholder="Cari nama mahasiswa atau keperluan belanja..."
             class="w-full rounded-2xl border border-slate-200 bg-slate-50/70 pl-10 pr-4 py-2.5 text-xs font-medium text-slate-800 placeholder:text-slate-400 focus:border-emerald-500 focus:bg-white focus:outline-none focus:ring-4 focus:ring-emerald-500/10 transition-all"
           />
         </div>

@@ -252,14 +252,14 @@ function exportToExcel() {
 
           <!-- Search Input -->
           <div class="relative min-w-0 flex-1 sm:w-64">
-            <label class="sr-only" for="search-input">Cari nama atau NIM</label>
+            <label class="sr-only" for="search-input">Cari nama mahasiswa</label>
             <Search class="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input 
               id="search-input"
               v-model="search" 
               type="search" 
               class="form-input pl-10 pr-9 text-xs sm:text-sm" 
-              placeholder="Cari nama atau NIM..." 
+              placeholder="Cari nama mahasiswa..." 
             />
             <button
               v-if="search"
