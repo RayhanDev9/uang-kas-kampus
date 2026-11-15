@@ -7,7 +7,13 @@ import {
   Loader2, 
   HelpCircle,
   Sparkles,
-  Info
+  Info,
+  CheckCircle2,
+  AlertTriangle,
+  X,
+  User,
+  Calendar,
+  ArrowRight
 } from 'lucide-vue-next'
 
 const props = defineProps({
@@ -53,6 +59,10 @@ const emit = defineEmits(['toggleCell', 'needPin'])
 
 // Tracking cell currently being updated: `${rowId}-${pertemuanKe}`
 const mutatingCellKey = ref(null)
+
+// Dialog konfirmasi sebelum submit mutasi absensi
+const pendingConfirm = ref(null)
+const isSubmitting = ref(false)
 
 const formatCurrency = (value) =>
   new Intl.NumberFormat('id-ID', {
@@ -104,16 +114,39 @@ function handleCellClick(row, pertemuan) {
   const detail = getDetail(row, pertemuan.pertemuanKe)
   const currentBayar = detail ? Boolean(detail.bayar) : false
   const targetBayar = !currentBayar
+  const nominal = detail?.nominal || props.semesterInfo?.nominalPerMinggu || 5000
 
-  mutatingCellKey.value = `${row._id}-${pertemuan.pertemuanKe}`
+  // Cegah salah klik: jangan langsung mutasi ke DB, buka dialog konfirmasi terlebih dahulu
+  pendingConfirm.value = {
+    row,
+    pertemuan,
+    currentBayar,
+    targetBayar,
+    nominal,
+  }
+}
+
+function cancelConfirm() {
+  if (isSubmitting.value) return
+  pendingConfirm.value = null
+}
+
+function executeConfirm() {
+  if (!pendingConfirm.value || isSubmitting.value) return
+
+  const item = pendingConfirm.value
+  isSubmitting.value = true
+  mutatingCellKey.value = `${item.row._id}-${item.pertemuan.pertemuanKe}`
 
   emit('toggleCell', {
-    kasId: row._id,
-    pertemuanKe: pertemuan.pertemuanKe,
-    bayar: targetBayar,
-    nominal: detail?.nominal || props.semesterInfo?.nominalPerMinggu || 5000,
+    kasId: item.row._id,
+    pertemuanKe: item.pertemuan.pertemuanKe,
+    bayar: item.targetBayar,
+    nominal: item.nominal,
     callback: () => {
       mutatingCellKey.value = null
+      isSubmitting.value = false
+      pendingConfirm.value = null
     },
   })
 }
@@ -360,5 +393,184 @@ function handleCellClick(row, pertemuan) {
         </div>
       </div>
     </div>
+
+    <!-- Modal Konfirmasi Ceklis Absensi Kas (Mencegah Salah Klik) -->
+    <Teleport to="body">
+      <Transition
+        enter-active-class="transition duration-200 ease-out"
+        enter-from-class="opacity-0 scale-95"
+        enter-to-class="opacity-100 scale-100"
+        leave-active-class="transition duration-150 ease-in"
+        leave-from-class="opacity-100 scale-100"
+        leave-to-class="opacity-0 scale-95"
+      >
+        <div
+          v-if="pendingConfirm"
+          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm"
+          role="presentation"
+          @click.self="cancelConfirm"
+          @keydown.esc="cancelConfirm"
+        >
+          <div
+            class="relative w-full max-w-md overflow-hidden rounded-3xl bg-white p-6 sm:p-7 shadow-2xl ring-1 ring-slate-900/10"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="confirm-modal-title"
+          >
+            <!-- Tombol Tutup X -->
+            <button
+              type="button"
+              class="absolute top-5 right-5 rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+              :disabled="isSubmitting"
+              aria-label="Tutup dialog konfirmasi"
+              @click="cancelConfirm"
+            >
+              <X class="h-5 w-5" />
+            </button>
+
+            <!-- Header Dialog -->
+            <div class="flex items-start gap-3.5 pr-8">
+              <div
+                class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl border shadow-sm"
+                :class="
+                  pendingConfirm.targetBayar
+                    ? 'bg-emerald-50 text-emerald-600 border-emerald-200'
+                    : 'bg-amber-50 text-amber-600 border-amber-200'
+                "
+              >
+                <CheckCircle2 v-if="pendingConfirm.targetBayar" class="h-6 w-6" />
+                <AlertTriangle v-else class="h-6 w-6" />
+              </div>
+              <div>
+                <span
+                  class="inline-block rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider border"
+                  :class="
+                    pendingConfirm.targetBayar
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      : 'bg-amber-50 text-amber-700 border-amber-200'
+                  "
+                >
+                  {{ pendingConfirm.targetBayar ? 'Konfirmasi Ceklis Lunas' : 'Konfirmasi Batal Ceklis' }}
+                </span>
+                <h3 id="confirm-modal-title" class="text-base font-extrabold text-slate-900 mt-1">
+                  {{ pendingConfirm.targetBayar ? 'Konfirmasi Pembayaran Kas' : 'Konfirmasi Batal Bayar' }}
+                </h3>
+              </div>
+            </div>
+
+            <!-- Kartu Informasi Mahasiswa (Nama & NIM Jelas Terpampang) -->
+            <div class="mt-5 space-y-3">
+              <div class="rounded-2xl border border-emerald-100 bg-emerald-50/40 p-4">
+                <div class="flex items-center gap-3">
+                  <div class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-emerald-600 text-white shadow-sm font-bold">
+                    <User class="h-5 w-5" />
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <p class="text-[10px] font-bold uppercase tracking-wider text-emerald-800/70">
+                      Nama Mahasiswa yang Di-Update
+                    </p>
+                    <p class="text-sm sm:text-base font-extrabold text-slate-900 truncate" :title="pendingConfirm.row.nama">
+                      {{ pendingConfirm.row.nama }}
+                    </p>
+                    <p class="font-mono text-xs font-semibold text-slate-500 mt-0.5">
+                      NIM: {{ pendingConfirm.row.nim || '—' }}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Rincian Aksi & Pertemuan -->
+              <div class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3.5 space-y-2.5 text-xs">
+                <div class="flex items-center justify-between">
+                  <span class="text-slate-500 font-medium flex items-center gap-1.5">
+                    <Calendar class="h-3.5 w-3.5 text-slate-400" />
+                    Pertemuan
+                  </span>
+                  <span class="font-bold text-slate-800">
+                    Pertemuan ke-{{ pendingConfirm.pertemuan.pertemuanKe }}
+                    <span class="font-normal text-slate-500">
+                      ({{ pendingConfirm.pertemuan.tanggal || `P${pendingConfirm.pertemuan.pertemuanKe}` }})
+                    </span>
+                  </span>
+                </div>
+
+                <div class="flex items-center justify-between">
+                  <span class="text-slate-500 font-medium">Nominal Iuran</span>
+                  <span class="font-mono font-bold text-slate-900">
+                    {{ formatCurrency(pendingConfirm.nominal) }}
+                  </span>
+                </div>
+
+                <div class="flex items-center justify-between pt-2 border-t border-slate-200">
+                  <span class="text-slate-500 font-medium">Perubahan Status</span>
+                  <div class="flex items-center gap-1.5 font-bold text-xs">
+                    <span
+                      class="rounded px-2 py-0.5"
+                      :class="pendingConfirm.currentBayar ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200/80 text-slate-600'"
+                    >
+                      {{ pendingConfirm.currentBayar ? '✓ Lunas' : '- Belum' }}
+                    </span>
+                    <ArrowRight class="h-3.5 w-3.5 text-slate-400" />
+                    <span
+                      class="rounded px-2 py-0.5"
+                      :class="
+                        pendingConfirm.targetBayar
+                          ? 'bg-emerald-600 text-white shadow-sm'
+                          : 'bg-rose-600 text-white shadow-sm'
+                      "
+                    >
+                      {{ pendingConfirm.targetBayar ? '✓ Lunas' : '- Batal Lunas' }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Catatan Pengingat Keamanan -->
+            <div class="mt-4 flex items-start gap-2 text-xs text-slate-500 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+              <Info class="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+              <span>
+                Data <strong>tidak akan masuk</strong> ke sistem sebelum Anda menekan tombol <strong>Konfirmasi</strong> di bawah ini.
+              </span>
+            </div>
+
+            <!-- Tombol Aksi Batal / Simpan -->
+            <div class="mt-6 flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                class="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 active:scale-95 transition-all shadow-sm"
+                :disabled="isSubmitting"
+                @click="cancelConfirm"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                class="inline-flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-xs font-bold text-white shadow-md active:scale-95 transition-all"
+                :class="
+                  pendingConfirm.targetBayar
+                    ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20'
+                    : 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/20'
+                "
+                :disabled="isSubmitting"
+                @click="executeConfirm"
+              >
+                <Loader2 v-if="isSubmitting" class="h-4 w-4 animate-spin" />
+                <Check v-else class="h-4 w-4 stroke-[2.5]" />
+                <span>
+                  {{
+                    isSubmitting
+                      ? 'Menyimpan...'
+                      : pendingConfirm.targetBayar
+                        ? 'Ya, Ceklis Lunas'
+                        : 'Ya, Batalkan Lunas'
+                  }}
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
