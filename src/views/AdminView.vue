@@ -23,7 +23,8 @@ import {
   HandCoins,
   RotateCcw,
   List,
-  TableProperties
+  TableProperties,
+  LogOut
 } from 'lucide-vue-next'
 import { getErrorMessage } from '../api/axios'
 import KasFormModal from '../components/KasFormModal.vue'
@@ -31,11 +32,15 @@ import KasTable from '../components/KasTable.vue'
 import KasMatrixTable from '../components/KasMatrixTable.vue'
 import PemasukanLainTable from '../components/PemasukanLainTable.vue'
 import KasImportModal from '../components/KasImportModal.vue'
+import { useAuth } from '../composables/useAuth'
 import { useKas } from '../composables/useKas'
 import { useKasMatrix } from '../composables/useKasMatrix'
 import { useSemester } from '../composables/useSemester'
 import { usePemasukanLain } from '../composables/usePemasukanLain'
 import { usePengeluaran } from '../composables/usePengeluaran'
+
+const { token, logout } = useAuth()
+const pin = computed(() => token.value || '')
 
 const { selectedSemesterId, selectedSemester, semesters, createSemester, activateSemester } = useSemester()
 const { kasQuery, createKas, updateKas, deleteKas } = useKas({ semesterId: selectedSemesterId })
@@ -61,7 +66,6 @@ const {
 
 const activeTab = ref('kas') // 'kas' | 'non-kas' | 'pengeluaran' | 'semester'
 const adminViewMode = ref('matriks')
-const pin = ref('')
 const modalOpen = ref(false)
 const importModalOpen = ref(false)
 const editingRecord = ref(null)
@@ -438,37 +442,35 @@ function exportExcel() {
       </div>
     </section>
 
-    <!-- Global PIN Authentication Card -->
-    <section class="rounded-3xl border border-slate-200/80 bg-white p-5 shadow-card transition-all sm:p-6">
-      <div class="flex items-center gap-2.5">
-        <div class="grid h-8 w-8 place-items-center rounded-xl bg-emerald-50 text-emerald-700">
-          <KeyRound class="h-4 w-4" />
+    <!-- Active Bendahara Session Status Banner -->
+    <section class="rounded-3xl border border-emerald-200/80 bg-gradient-to-r from-emerald-50/90 via-teal-50/40 to-white p-5 shadow-card transition-all sm:p-6">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div class="flex items-center gap-3.5">
+          <div class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-emerald-600 text-white shadow-md shadow-emerald-600/20">
+            <ShieldCheck class="h-6 w-6" />
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h2 class="text-sm font-extrabold text-slate-900">Sesi Bendahara Aktif</h2>
+              <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-100/90 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800">
+                <span class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                Terautentikasi
+              </span>
+            </div>
+            <p class="mt-0.5 text-xs text-slate-500">
+              Token tersimpan di peramban. Anda dapat mengedit kas, absensi mingguan, dan belanja tanpa perlu mengisi PIN berulang kali.
+            </p>
+          </div>
         </div>
-        <label for="admin-pin" class="text-sm font-extrabold text-slate-900">PIN Otorisasi Bendahara</label>
-      </div>
-      <p class="mt-1.5 text-xs text-slate-500">
-        PIN dikirimkan melalui header HTTP <code class="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] text-slate-700">x-admin-pin</code> untuk menyimpan perubahan atau impor data.
-      </p>
 
-      <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div class="relative w-full sm:max-w-xs">
-          <input 
-            id="admin-pin" 
-            v-model="pin" 
-            type="password" 
-            inputmode="numeric" 
-            autocomplete="current-password" 
-            class="form-input tracking-widest font-mono text-center font-bold" 
-            placeholder="••••••" 
-          />
-        </div>
-        <div 
-          class="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold"
-          :class="pin.trim() ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'"
+        <button
+          type="button"
+          class="inline-flex items-center justify-center gap-2 rounded-2xl border border-rose-200 bg-white px-4 py-2.5 text-xs font-bold text-rose-600 shadow-sm transition-all hover:bg-rose-50 hover:text-rose-700 active:scale-95 shrink-0"
+          @click="logout"
         >
-          <span class="h-2 w-2 rounded-full" :class="pin.trim() ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'"></span>
-          <span>{{ pin.trim() ? 'PIN siap digunakan' : 'PIN belum diisi' }}</span>
-        </div>
+          <LogOut class="h-4 w-4" />
+          <span>Keluar dari Ruang Bendahara</span>
+        </button>
       </div>
     </section>
 

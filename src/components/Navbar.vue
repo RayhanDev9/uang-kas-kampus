@@ -1,19 +1,29 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
-import { Wallet, LayoutDashboard, Info, ShieldCheck, History, Menu, X } from 'lucide-vue-next'
+import { Wallet, LayoutDashboard, Info, ShieldCheck, History, Menu, X, LogOut } from 'lucide-vue-next'
 import SemesterSwitcher from './SemesterSwitcher.vue'
 import HistoryDrawer from './HistoryDrawer.vue'
+import { useAuth } from '../composables/useAuth'
 
 const route = useRoute()
+const { isAuthenticated, logout } = useAuth()
 const menuOpen = ref(false)
 const historyOpen = ref(false)
 
-const links = [
-  { to: '/', label: 'Ringkasan', icon: LayoutDashboard },
-  { to: '/info', label: 'Cara Bayar', icon: Info },
-  { to: '/admin', label: 'Ruang Bendahara', icon: ShieldCheck },
-]
+const links = computed(() => {
+  const base = [
+    { to: '/', label: 'Ringkasan', icon: LayoutDashboard },
+    { to: '/info', label: 'Cara Bayar', icon: Info },
+  ]
+
+  // Hanya tampilkan Ruang Bendahara jika bendahara sudah login
+  if (isAuthenticated.value) {
+    base.push({ to: '/admin', label: 'Ruang Bendahara', icon: ShieldCheck })
+  }
+
+  return base
+})
 
 function isActive(path) {
   return route.path === path
@@ -136,6 +146,16 @@ watch(
           >
             <History class="h-5 w-5 text-emerald-600" />
             <span>Riwayat Pembayaran & Kas</span>
+          </button>
+
+          <button
+            v-if="isAuthenticated"
+            type="button"
+            class="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-rose-600 hover:bg-rose-50 hover:text-rose-700 transition-all text-left mt-1 border-t border-slate-100"
+            @click="menuOpen = false; logout()"
+          >
+            <LogOut class="h-5 w-5 text-rose-500" />
+            <span>Keluar (Logout Bendahara)</span>
           </button>
         </nav>
       </div>

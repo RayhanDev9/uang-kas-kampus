@@ -7,12 +7,29 @@ const router = createRouter({
   history: createWebHistory(),
   routes: [
     { path: '/', name: 'dashboard', component: DashboardView },
-    { path: '/admin', name: 'admin', component: AdminView },
+    {
+      path: '/admin',
+      name: 'admin',
+      component: AdminView,
+      meta: { requiresAuth: true },
+    },
     { path: '/info', name: 'info', component: InfoView },
   ],
   scrollBehavior() {
     return { top: 0 }
   },
+})
+
+const TOKEN_KEY = 'kaskita_bendahara_token'
+
+router.beforeEach((to, from, next) => {
+  if (to.meta.requiresAuth || to.path.startsWith('/admin')) {
+    const token = localStorage.getItem(TOKEN_KEY)
+    if (!token) {
+      return next({ path: '/' })
+    }
+  }
+  return next()
 })
 
 export default router

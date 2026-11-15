@@ -13,6 +13,17 @@ const api = axios.create({
   timeout: 15_000,
 })
 
+const TOKEN_KEY = 'kaskita_bendahara_token'
+
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem(TOKEN_KEY)
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+    config.headers['x-admin-pin'] = token
+  }
+  return config
+})
+
 export function getErrorMessage(error) {
   if (axios.isAxiosError(error)) {
     if (error.response?.data?.message) return error.response.data.message
